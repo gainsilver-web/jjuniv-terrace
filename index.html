@@ -254,7 +254,7 @@ button.tag.jjtag i{background:#ffd62e;color:#7a5a00}
   <span class="tchip coin" id="coinChip" title="쓰레기를 주워 쓰레기통에 넣으면 달란트를 받아요">🪙 <b id="coinN">0</b> 달란트<span id="carryN"></span></span>
 </div>
 
-<span class="hint" id="hint">WASD·방향키 또는 바닥 클릭: 걷기 · 드래그: 둘러보기 · 휠: 확대 · 벤치 클릭: 앉기</span>
+<span class="hint" id="hint">WASD·방향키 또는 바닥 클릭: 걷기 · 스페이스: 점프 · 드래그: 둘러보기 · 휠: 확대 · 벤치 클릭: 앉기</span>
 
 <div class="bar" role="toolbar" aria-label="행동">
   <button class="act main" id="aPlane" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21.5 3L2.5 10.5l7 2.5 2.5 7.5z"/><path d="M21.5 3L9.5 13"/></svg>고민 날리기</button>
@@ -913,6 +913,7 @@ function poseAvatar(av,dt,moving,seated,t){
   const hg=t-av.hugT; if(hg>=0&&hg<4.2){ const k=Math.min(1,hg/.5,(4.2-hg)/.5); av.arms.forEach((a,i)=>{ a.rotation.x=-1.4*k; a.rotation.z=(i?1:-1)*(.24-.5*k); }); av.body.rotation.x=.05*k; av.head.rotation.z=.18*k*Math.sin(Math.min(1,hg)*Math.PI/2); } else av.body.rotation.x=0;
   const bl=t-av.blowT; av.wand.visible=bl>=0&&bl<2.9; if(av.wand.visible){ const k=Math.min(1,bl/.35,(2.9-bl)/.35); av.arms[1].rotation.x=-2.25*k+(seated?-.35:0)*(1-k); av.arms[1].rotation.z=.24-.66*k; av.head.rotation.x=-.12*k; } else av.head.rotation.x=0;
   av.holds.forEach((g,k)=>g.visible=k===av.holdIdx); if(av.holdIdx>=0&&!av.wand.visible&&(t-(av.punchT??-9))>.7){ av.arms[1].rotation.x=-1.35; av.arms[1].rotation.z=.12; }
+  { const jp=(t-(av.jumpT??-9))/JUMP_T; if(jp>0&&jp<1){ const k=Math.sin(jp*Math.PI); av.arms.forEach((a,i)=>{ a.rotation.z=(i?1:-1)*(.24+1.1*k); }); av.legs.forEach(l=>{ l.rotation.x=-.5*k; l.userData.knee.rotation.x=.9*k; }); } }
   const pt=t-(av.punchT??-9); if(pt>=0&&pt<.55){ const k=pt<.12?pt/.12:1-(pt-.12)/.43; av.arms[1].rotation.x=-1.6*k; av.arms[1].rotation.z=.24-.2*k; av.arms[0].rotation.x=.4*k; av.body.rotation.y=-.35*k; } else if(pt<.7) av.body.rotation.y=0;
   const wv=t-av.waveT; // 손 흔들기
   if(wv<1.4){ av.arms[0].rotation.x=-2.7; av.arms[0].rotation.z=-.2+Math.sin(wv*14)*.35; }
@@ -1675,6 +1676,7 @@ async function enterRoom(name,pick,auto){
   roomUnsubs.push(r.on('hug',msg=>{ if(msg.sameTab) return; const o=mine(msg); if(o) startHug(o.av,false); }));
   roomUnsubs.push(r.on('punch',msg=>{ if(msg.sameTab) return; const o=mine(msg); const sc=Math.round(fin(msg.data&&msg.data.score,0,999,0)); if(o){ o.av.punchT=clock.elapsedTime; setTimeout(()=>{ hitMachine(sc,false); setTop(sc,o.pr.nick); },160); } }));
   roomUnsubs.push(r.on('pick',msg=>{ if(msg.sameTab) return; const d=msg.data||{}; if(d.key===trashKey&&Number.isInteger(d.id)) hideTrash(d.id); }));
+  roomUnsubs.push(r.on('jump',msg=>{ if(msg.sameTab) return; const o=mine(msg); if(o) o.av.jumpT=clock.elapsedTime; }));
   roomUnsubs.push(r.on('chat',msg=>{ if(msg.sameTab) return; const o=mine(msg); const t=msg.data&&msg.data.t; if(o&&typeof t==='string') onChat(o,msg.peer,t); }));
   roomUnsubs.push(r.on('say',msg=>{ if(msg.sameTab) return; const o=mine(msg); const i=Number(msg.data&&msg.data.i); if(o&&Number.isInteger(i)&&i>=0&&i<SAYS.length) showSay(o,i); }));
   roomUnsubs.push(r.on('bubble',msg=>{ if(msg.sameTab) return; const o=mine(msg); if(o) blowBubbles(o.av,false); }));
@@ -1874,7 +1876,12 @@ $('#aOrder').addEventListener('click',syncOrder);
 $('#aBubble').onclick=()=>doBubble();
 $('#aStand').onclick=()=>standUp(false);
 $('#punchGo').onclick=doPunch; $('#punchClose').onclick=()=>leaveQueue('펀치를 그만했어요.'); $('#qLeave').onclick=()=>leaveQueue('줄에서 나왔어요.');
-addEventListener('keydown',e=>{ if(gauge.on&&(e.code==='Space'||e.key===' ')){ e.preventDefault(); doPunch(); } });
+// 점프 (스페이스바) — 펀치 게이지가 떠 있을 때는 펀치
+const JUMP_T=.55, JUMP_H=.62;
+function jumpH(av,t){ const p=(t-(av.jumpT??-9))/JUMP_T; return p>0&&p<1?4*JUMP_H*p*(1-p):0; }
+function doJump(){ if(!S.entered||S.seat!==null) return; const t=clock.elapsedTime; if(t-(me.av.jumpT??-9)<JUMP_T) return; me.av.jumpT=t; room.emit('jump',{}).catch(()=>{}); hop(); }
+function hop(){ if(!S.sound||!audio()) return; const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain(); o.type='sine'; o.frequency.setValueAtTime(330,t); o.frequency.exponentialRampToValueAtTime(660,t+.12); g.gain.setValueAtTime(.07,t); g.gain.exponentialRampToValueAtTime(.0001,t+.18); o.connect(g).connect(ac.destination); o.start(t); o.stop(t+.2); }
+addEventListener('keydown',e=>{ if(e.code!=='Space'&&e.key!==' ') return; if(e.target.closest&&e.target.closest('input,textarea,button,select')) return; e.preventDefault(); if(gauge.on){ doPunch(); return; } if(!e.repeat) doJump(); });
 $('#aHug').onclick=()=>goHug();
 addEventListener('keydown',e=>{ if(e.key==='Escape'){ closePops(); $('#verse').hidden=true; if(!sheet.hidden){ worry.value=''; sheet.hidden=true; } } });
 $('#shotBtn').onclick=takeShot;
@@ -2036,7 +2043,7 @@ function frame(){
   if(meSeated) S.ry=lerpAng(S.ry,SEATS[S.seat].f,Math.min(1,dt*8));
   S.y=meSeated?SEATS[S.seat].y:groundY(S.x,S.z);
   camDelta.set(S.x-me.av.x,S.y-(me.av.y||0),S.z-me.av.z);
-  me.av.x=S.x; me.av.z=S.z; me.av.y=(Number.isFinite(me.av.y)?me.av.y:S.y)+(S.y-(Number.isFinite(me.av.y)?me.av.y:S.y))*Math.min(1,dt*14); me.av.root.position.set(S.x,me.av.y,S.z); me.av.ry=lerpAng(me.av.ry,S.ry,Math.min(1,dt*10)); me.av.root.rotation.y=me.av.ry;
+  me.av.x=S.x; me.av.z=S.z; me.av.y=(Number.isFinite(me.av.y)?me.av.y:S.y)+(S.y-(Number.isFinite(me.av.y)?me.av.y:S.y))*Math.min(1,dt*14); me.av.root.position.set(S.x,me.av.y+jumpH(me.av,t),S.z); me.av.ry=lerpAng(me.av.ry,S.ry,Math.min(1,dt*10)); me.av.root.rotation.y=me.av.ry;
   if(S.hold&&Date.now()-S.hold.t>90000){ S.hold=null; pushPresence(true); } me.av.holdIdx=S.hold?S.hold.k:-1;
   poseAvatar(me.av,dt,moving,meSeated,t);
   camera.position.add(camDelta); controls.target.add(camDelta); if(moving&&S.intro){ S.intro=false; S.pullIn=true; } if(!S.intro){ controls.target.lerp(tgt.set(S.x,S.y+1.7,S.z),Math.min(1,dt*4)); if(S.pullIn){ if(controls.getDistance()<10) S.pullIn=false; else camera.position.lerp(tgt.set(S.x,S.y+3.6,S.z+9),Math.min(1,dt*1.6)); } }
@@ -2046,7 +2053,7 @@ function frame(){
     const pr=o.pr, own=pr.seat!==null&&S.occ.get(pr.seat)&&S.occ.get(pr.seat).peer===peer, s=own?SEATS[pr.seat]:null;
     const dx=pr.x-o.av.x, dz=pr.z-o.av.z, d=Math.hypot(dx,dz), k=Math.min(1,dt*7); o.av.x+=dx*k; o.av.z+=dz*k;
     const mv=d>.04; let ry=pr.ry; const seated=!!s&&Math.hypot(s.x-o.av.x,s.z-o.av.z)<.12&&!mv; if(seated) ry=s.f;
-    o.av.ry=lerpAng(o.av.ry,ry,Math.min(1,dt*10)); const gy=seated?s.y:groundY(o.av.x,o.av.z); o.av.y=(o.av.y??gy)+(gy-(o.av.y??gy))*Math.min(1,dt*14); o.av.root.position.set(o.av.x,o.av.y,o.av.z); o.av.root.rotation.y=o.av.ry;
+    o.av.ry=lerpAng(o.av.ry,ry,Math.min(1,dt*10)); const gy=seated?s.y:groundY(o.av.x,o.av.z); o.av.y=(o.av.y??gy)+(gy-(o.av.y??gy))*Math.min(1,dt*14); o.av.root.position.set(o.av.x,o.av.y+jumpH(o.av,t),o.av.z); o.av.root.rotation.y=o.av.ry;
     o.av.holdIdx=pr.hd??-1; poseAvatar(o.av,dt,mv,seated,t); placeLabel(o,false,now);
   }
   placeLabel(me,true,now); me.lb.el.style.opacity=(t-(me.av.hugT??-99))<HUG_LEN?'0':'';
