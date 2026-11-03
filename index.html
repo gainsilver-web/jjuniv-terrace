@@ -1485,7 +1485,7 @@ function pushPresence(force){
   const now=performance.now();
   if(!force&&now-lastPush<140){ if(!pushQueued){ pushQueued=true; setTimeout(()=>{pushQueued=false;pushPresence(true);},150);} return; }
   lastPush=now;
-  room.presence({t0:S.joinedAt||0,room:S.roomKey||S.room,nick:S.nick||'손님',color:S.color,x:+S.x.toFixed(2),z:+S.z.toFixed(2),ry:+S.ry.toFixed(2),seat:S.seat,seatAt:S.seatAt,pq:S.pq||0,po:S.po||null,hd:S.hold?S.hold.k:-1}).catch(()=>{});
+  room.presence({t0:S.joinedAt||0,room:S.roomKey||S.room,at:S.roomKey||S.room,nick:S.nick||'손님',color:S.color,x:+S.x.toFixed(2),z:+S.z.toFixed(2),ry:+S.ry.toFixed(2),seat:S.seat,seatAt:S.seatAt,pq:S.pq||0,po:S.po||null,hd:S.hold?S.hold.k:-1}).catch(()=>{});
 }
 function parsePeer(p){ const pr=p.presence||{}; const seat=Number.isInteger(pr.seat)&&pr.seat>=0&&pr.seat<SEATS.length?pr.seat:null;
   return {t0:num(pr.t0),nick:cleanNick(pr.nick)||'손님',color:okColor(pr.color),x:fin(pr.x,-BOUNDS.x,BOUNDS.x,0),z:fin(pr.z,BOUNDS.z0,BOUNDS.z1,3),ry:fin(pr.ry,-10,10,0),seat,seatAt:num(pr.seatAt),pq:num(pr.pq),po:Array.isArray(pr.po)&&pr.po.length===2?[Math.round(fin(pr.po[0],-1,2,-1)),Math.round(fin(pr.po[1],-1,5,-1))]:null,hd:Math.round(fin(pr.hd,-1,2,-1))}; }
@@ -1503,14 +1503,15 @@ function syncPeers(peers){
     if(!o){ o={av:makeAvatar(pr.color,p.peer),lb:makeLabel(p.peer),pr,say:'',sayAt:0}; o.av.x=pr.x; o.av.z=pr.z; o.av.ry=pr.ry; others.set(p.peer,o); }
     o.pr=pr; recolor(o.av,pr.color); }
   for(const [peer,o] of others) if(!seen.has(peer)){ scene.remove(o.av.root); o.lb.el.remove(); others.delete(peer); }
-  $('#peopleN').textContent=others.size+1; computeOcc();
+  $('#peopleN').textContent=others.size+1; computeOcc(); if(typeof renderRooms==='function'&&S.roomKey) renderRooms();
 }
 const ROOM_CAP=11, ROOM_N=5; // 테라스 5개, 한 테라스 최대 11명
 const roomNames=base=>Array.from({length:ROOM_N},(_,i)=>i?`${base}-${i+1}`.slice(0,48):base);
 const roomLabel=(rn)=>{ const i=roomNames(S.room).indexOf(rn); return i<=0?'1번 테라스':`${i+1}번 테라스`; };
 // 테라스별 인원: 모두가 공통 로비에 "지금 있는 테라스"를 알려 두고 세요
 S.lobbyPeers=[];
-function roomCounts(){ const c={}; for(const p of S.lobbyPeers){ if(p.sameTab||p.kind!=='viewer') continue; const at=p.presence&&p.presence.at; if(typeof at==='string') c[at]=(c[at]||0)+1; } if(S.roomKey) c[S.roomKey]=(c[S.roomKey]||0)+1; return c; }
+function roomCounts(){ const c={}; for(const p of S.lobbyPeers){ if(p.sameTab||p.kind!=='viewer') continue; const pr=p.presence||{}; const at=typeof pr.at==='string'?pr.at:(typeof pr.room==='string'&&pr.room!=='~away'?pr.room:null); if(at) c[at]=(c[at]||0)+1; }
+  const cur=S.roomKey; if(cur){ c[cur]=Math.max((c[cur]||0)+1, others.size+1); } return c; }
 function renderRooms(){ const c=roomCounts(), cur=S.roomKey||S.room;
   $('#roomName').textContent=`${roomLabel(cur)} (${c[cur]||1}/${ROOM_CAP})`;
   const box=$('#roomList'); if(!box) return; box.textContent='';
