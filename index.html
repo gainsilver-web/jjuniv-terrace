@@ -799,6 +799,41 @@ const CAR={x:15.6,z:8.75,ry:Math.PI};
   const cl=new THREE.PointLight(0x9fd0ff,.5,5,2); cl.position.set(0,1.6,-1.2); g.add(cl);
   const top=new THREE.PointLight(0xfff2dc,1.1,9,2); top.position.set(0,3.4,0); g.add(top);
 }
+// ── 주차된 파란 세단 (50루 0000) : 정면 왼쪽 계단 옆, 흰 차 맞은편 ──
+const CAR2={x:-15.6,z:8.75,ry:Math.PI};
+{
+  const g=new THREE.Group(); g.position.set(CAR2.x,-4,CAR2.z); g.rotation.y=CAR2.ry; scene.add(g);
+  const paint=new THREE.MeshPhysicalMaterial({color:0x0f2fb8,metalness:.6,roughness:.28,clearcoat:1,clearcoatRoughness:.05,emissive:0x050f40,emissiveIntensity:.35});
+  const glass=new THREE.MeshPhysicalMaterial({color:0x0b0f16,metalness:.2,roughness:.08,clearcoat:1});
+  const trim=std(0x15171b,{roughness:.6}), chrome=std(0xc9ced6,{metalness:.85,roughness:.22});
+  const W=1.78;
+  const side=(pts,width,mat)=>{ const sh=new THREE.Shape(); pts.forEach(([z,y],i)=>i?sh.lineTo(-z,y):sh.moveTo(-z,y)); sh.closePath();
+    const geo=new THREE.ExtrudeGeometry(sh,{depth:width,bevelEnabled:true,bevelThickness:.1,bevelSize:.07,bevelSegments:6,curveSegments:8}); geo.rotateY(Math.PI/2); geo.translate(-width/2,0,0);
+    const m=new THREE.Mesh(geo,mat); m.castShadow=true; m.receiveShadow=true; g.add(m); return m; };
+  // 세단 옆선: 낮은 보닛 → 경사진 앞유리 → 둥근 지붕 → 짧은 트렁크 (+z가 앞)
+  side([[-2.22,.36],[-2.28,.58],[-2.2,.86],[-1.75,.92],[-1.05,.93],[-.35,1.38],[.75,1.4],[1.35,.98],[2.1,.86],[2.26,.66],[2.24,.36]],W-.2,paint);
+  side([[-1.0,.95],[-.38,1.33],[.72,1.35],[1.28,.98]],W-.36,glass);
+  side([[-2.24,.28],[-2.28,.44],[2.26,.44],[2.24,.28]],W-.22,trim);
+  const tireG=new THREE.CylinderGeometry(.32,.32,.22,28), rimG=new THREE.CylinderGeometry(.22,.22,.23,18);
+  for(const [x,z] of [[-.78,1.38],[.78,1.38],[-.78,-1.32],[.78,-1.32]]){ const t=mesh(tireG,trim,x,.32,z); t.rotation.z=Math.PI/2; g.add(t); const r=mesh(rimG,chrome,x,.32,z); r.rotation.z=Math.PI/2; g.add(r); }
+  const archG=new THREE.TorusGeometry(.38,.05,8,20,Math.PI); for(const [x,z] of [[-.86,1.38],[.86,1.38],[-.86,-1.32],[.86,-1.32]]){ const a=mesh(archG,trim,x,.32,z); a.rotation.y=Math.PI/2; g.add(a); }
+  // 앞: 육각 그릴 + 헤드램프 / 뒤: 길게 이어진 빨간 테일램프 + 크롬 엠블럼
+  g.add(mesh(new THREE.BoxGeometry(.8,.22,.05),trim,0,.6,2.31)); g.add(mesh(new THREE.BoxGeometry(.82,.02,.06),chrome,0,.72,2.31));
+  for(const s of [-1,1]) g.add(mesh(new THREE.BoxGeometry(.42,.09,.05),new THREE.MeshBasicMaterial({color:0xe9f2ff}),s*.62,.8,2.25,false));
+  for(const s of [-1,1]){ const tl=mesh(new THREE.BoxGeometry(.5,.12,.06),new THREE.MeshBasicMaterial({color:0xd81e28}),s*.6,.84,-2.28,false); g.add(tl); }
+  g.add(mesh(new THREE.BoxGeometry(.12,.06,.03),chrome,0,.86,-2.3));
+  g.add(mesh(new THREE.BoxGeometry(1.2,.04,.04),new THREE.MeshBasicMaterial({color:0xd81e28}),0,.42,-2.3,false));
+  // 일반 번호판 (흰색) 50루 0000
+  const plateTex=canvasTex(520,110,(c,w,hh)=>{ c.fillStyle='#f7f7f2'; c.fillRect(0,0,w,hh); c.strokeStyle='#1b1b1b'; c.lineWidth=6; c.strokeRect(3,3,w-6,hh-6);
+    c.fillStyle='#111'; c.font='bold 76px "Noto Sans KR","Apple SD Gothic Neo",sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText('50루 0000',w/2,60); });
+  const plateM=new THREE.MeshBasicMaterial({map:plateTex});
+  g.add(mesh(new THREE.PlaneGeometry(.52,.11),plateM,0,.5,2.36,false));
+  const pr=mesh(new THREE.PlaneGeometry(.52,.11),plateM,0,.66,-2.33,false); pr.rotation.y=Math.PI; g.add(pr);
+  const sh=new THREE.Mesh(new THREE.PlaneGeometry(2.3,5),new THREE.MeshBasicMaterial({transparent:true,depthWrite:false,map:canvasTex(64,128,(c,w,hh)=>{ const gr=c.createRadialGradient(32,64,8,32,64,64); gr.addColorStop(0,'rgba(0,0,0,.55)'); gr.addColorStop(1,'rgba(0,0,0,0)'); c.fillStyle=gr; c.fillRect(0,0,w,hh); })}));
+  sh.rotation.x=-Math.PI/2; sh.position.y=.012; g.add(sh);
+  const lineM=new THREE.MeshBasicMaterial({color:0xe8e8e8}); for(const s of [-1,1]){ const l=new THREE.Mesh(new THREE.PlaneGeometry(.08,5.2),lineM); l.rotation.x=-Math.PI/2; l.position.set(s*1.3,.01,0); g.add(l); }
+  const top=new THREE.PointLight(0xfff2dc,.6,9,2); top.position.set(0,3.4,0); g.add(top);
+}
 // 벤치 근처 정원등
 for(const x of [-30,-18,18,30]){ scene.add(mesh(new THREE.CylinderGeometry(.05,.06,1.1,8),std(0x2d3038),x,.55,1.6)); scene.add(mesh(new THREE.SphereGeometry(.13,10,8),new THREE.MeshBasicMaterial({color:0xffe6b0}),x,1.15,1.6,false)); }
 
@@ -1220,7 +1255,7 @@ const FRIDGE={x:41.25,z:-8.1};
 }
 // ───────── 쓰레기 줍기 → 쓰레기통 → 달란트 → 헌금함 ─────────
 const BINS=[{x:-9.3,z:4.9},{x:9.3,z:4.9}], OFFER={x:0,z:8.25};
-const TRASH_N=14, TRASH_SLOT=600000, CARRY_MAX=5, COIN_PER=10;
+const TRASH_N=14, TRASH_SLOT=120000, CARRY_MAX=5, COIN_PER=10; // 2분마다 새 쓰레기
 S.carry=0; S.picked=new Set(); S.pk=[];
 const mkRand=seed=>()=>{ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
 const hashStr=s=>{ let x=2166136261; for(const ch of s){ x^=ch.charCodeAt(0); x=Math.imul(x,16777619); } return x>>>0; };
@@ -1562,6 +1597,7 @@ function zoneOf(x,z){ const ax=Math.abs(x), s=x<0?'L':'R';
   if(ax<=3.1&&z>5.5&&z<=8.8) return 'L';
   if(ax>=3.9&&ax<=10.6&&z>5.5&&z<=14.4) return 'St'+s;
   if(Math.abs(x-CAR.x)<1.35&&z>CAR.z-2.75&&z<CAR.z+2.75) return null;
+  if(Math.abs(x-CAR2.x)<1.3&&z>CAR2.z-2.7&&z<CAR2.z+2.7) return null;
   if(ax<=55&&z<=62&&Math.hypot(x-GARDEN.x,z-GARDEN.z)>=3.1&&(z>14.4||(ax>=11.9&&z>=6.5)||(ax<=3.1&&z>=9.7)||(ax>=42.5&&z>=-14))) return 'G';
   return null; }
 const isWalk=(x,z)=>zoneOf(x,z)!==null;
