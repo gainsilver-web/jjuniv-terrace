@@ -351,10 +351,10 @@ a.passtag:hover{background:#ffe066}
   <div class="row"><span class="l" style="width:4.5em">풀벌레</span><div class="mopts" id="bugOpts"><button type="button" data-b="on">🦗 켜기</button><button type="button" data-b="off">끄기</button></div></div>
   <p class="small">퇴근 알림은 평일 18:00 기준으로 30분 전, 10분 전, 정각에 떠요.</p>
 </div>
-<div class="pop" id="pRoom" hidden><h3>테라스 고르기 · 한 테라스에 11명까지</h3>
+<div class="pop" id="pRoom" hidden><h3>테라스 고르기 · 한 테라스에 12명까지</h3>
   <div class="rlist" id="roomList"></div>
   <h3 style="margin-top:6px">우리 부서끼리 모이기</h3>
-  <p class="small">영문·숫자로 방 이름을 정하고 이동한 뒤, 링크를 복사해 보내 주세요. 같은 링크로 들어온 분끼리 만나요. 부서 방도 테라스 5개로 나뉘어요.</p>
+  <p class="small">영문·숫자로 방 이름을 정하고 이동한 뒤, 링크를 복사해 보내 주세요. 같은 링크로 들어온 분끼리 만나요. 부서 방도 테라스 10개로 나뉘어요.</p>
   <form class="row" id="roomForm"><input class="field" id="roomIn" maxlength="40" placeholder="예: gyomu"><button class="btn" type="submit">이동</button></form>
   <button class="btn" id="copyRoom" type="button">지금 있는 방 링크 복사</button></div>
 
@@ -1870,7 +1870,7 @@ function syncPeers(peers){
   for(const [peer,o] of others) if(!seen.has(peer)){ scene.remove(o.av.root); o.lb.el.remove(); others.delete(peer); }
   $('#peopleN').textContent=others.size+1; computeOcc(); if(typeof renderRooms==='function'&&S.roomKey) renderRooms();
 }
-const ROOM_CAP=11, ROOM_N=5; // 테라스 5개, 한 테라스 최대 11명
+const ROOM_CAP=12, ROOM_N=10; // 테라스 10개, 한 테라스 최대 12명
 const roomNames=base=>Array.from({length:ROOM_N},(_,i)=>i?`${base}-${i+1}`.slice(0,48):base);
 const roomLabel=(rn)=>{ const i=roomNames(S.room).indexOf(rn); return i<=0?'1번 테라스':`${i+1}번 테라스`; };
 // 테라스별 인원: 모두가 공통 로비에 "지금 있는 테라스"를 알려 두고 세요
@@ -1888,6 +1888,7 @@ function renderRooms(){ const c=roomCounts(), cur=S.roomKey||S.room;
 let lobbyWatch=null;
 function watchLobby(){ if(!lobby||lobbyWatch) return; lobbyWatch=lobby.onPeers(ch=>{ S.lobbyPeers=[...ch.peers]; renderRooms(); },()=>{}); S.lobbyPeers=[...lobby.peers()]; }
 async function enterRoom(name,pick,auto){
+  if(siteClosed) return;
   const tok=enterTok=enterTok+1; S.userPick=!!pick&&!auto;
   S.room=name; S.joinedAt=Date.now(); fullSince=0; aloneSince=0; $('#roomName').textContent=name;
   roomUnsubs.forEach(u=>u()); roomUnsubs=[]; try{ await room.leave(); }catch(e){}
@@ -1895,7 +1896,7 @@ async function enterRoom(name,pick,auto){
   syncPeers([]); if(S.seat!==null) standUp(true); renderBoard();
   if(!lobby){ setConn(false); return; }
   watchLobby();
-  // 고른 테라스로, 아니면 1번부터 빈자리 있는 테라스로 (최대 5개)
+  // 고른 테라스로, 아니면 1번부터 빈자리 있는 테라스로 (최대 10개)
   let r=null, fellBack=false, used=name; const cands=pick?[pick]:roomNames(name);
   const viewersIn=x=>x.peers().filter(p=>!p.sameTab&&p.kind==='viewer').length;
   for(const rn of cands){ if(r) break;
@@ -1906,7 +1907,7 @@ async function enterRoom(name,pick,auto){
     if(S.room!==name||tok!==enterTok){ jr.leave().catch(()=>{}); return; }
     if(viewersIn(jr)>=ROOM_CAP){ jr.leave().catch(()=>{}); if(pick){ setStatus(`${roomLabel(rn)}가 꽉 찼어요. 다른 테라스를 골라 주세요.`); return enterRoom(name); } continue; }
     r=jr; used=rn; }
-  if(!r){ r=await lobby.join(name); used=name; if(!fellBack) setStatus('테라스 5개가 모두 꽉 찼어요. 1번 테라스로 들어왔어요.'); }
+  if(!r){ r=await lobby.join(name); used=name; if(!fellBack) setStatus('테라스가 모두 꽉 찼어요. 1번 테라스로 들어왔어요.'); }
   lobby.presence({at:used,t0:S.joinedAt}).catch(()=>{});
   S.roomKey=used; renderRooms();
   if(auto) setStatus(`이 테라스가 꽉 차서 ${roomLabel(used)}로 안내했어요 🙂`);
@@ -1929,7 +1930,7 @@ async function enterRoom(name,pick,auto){
 }
 // 인원 파악이 늦어 정원을 넘기면 늦게 온 분부터 빈 테라스로 (모두 같은 순서로 계산)
 let enterTok=0, fullSince=0, aloneSince=0; const FULL_WAIT=6000, ALONE_WAIT=45000;
-function overflowTick(){ if(!lobby||!S.roomKey) return; const now=Date.now(), cur=S.roomKey, c=roomCounts(), names=roomNames(S.room);
+function overflowTick(){ if(!lobby||!S.roomKey||siteClosed) return; const now=Date.now(), cur=S.roomKey, c=roomCounts(), names=roomNames(S.room);
   const seenP=new Map(); for(const q of S.lobbyPeers){ const pr=q.presence||{}; if(pr.at===cur) seenP.set(q.peer,num(pr.t0)); } for(const [p,o] of others) seenP.set(p,o.pr.t0); const line=[...seenP].map(([p,t])=>({p,t})); line.push({p:S.myPeer||'',t:S.joinedAt,me:true}); line.sort((a,b)=>a.t-b.t||(a.p<b.p?-1:1));
   if(line.findIndex(x=>x.me)>=ROOM_CAP){ fullSince=fullSince||now; if(now-fullSince>=FULL_WAIT){ const to=names.find(r=>r!==cur&&(c[r]||0)<ROOM_CAP); fullSince=0; if(to) enterRoom(S.room,to,true); } return; }
   fullSince=0;
@@ -2365,7 +2366,21 @@ $('#chatOnBox').onchange=async()=>{ const on=$('#chatOnBox').checked; try{ await
 // 공지·자유 대화 스위치: 깃허브의 notice.json을 고치면 1~2분 안에 모두에게 반영돼요
 async function pollNotice(){ try{ const r=await fetch('notice.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) return; const d=await r.json(); if(!d||typeof d!=='object') return;
   const text=typeof d.text==='string'?d.text.replace(/[\u0000-\u0008\u000b-\u001f]/g,'').trim().slice(0,120):''; showNotice(text?{text,reload:!!d.reload,at:text}:null);
-  if(typeof d.chat==='boolean'&&d.chat!==S.chatOn){ S.chatOn=d.chat; syncChatUI(); } }catch(e){} }
+  if(typeof d.chat==='boolean'&&d.chat!==S.chatOn){ S.chatOn=d.chat; syncChatUI(); }
+  if(d.closed===true) closeSite(text); else if(siteClosed&&d.closed===false) location.reload(); }catch(e){} }
+// 쉼터 닫기: notice.json의 closed가 true면 접속 중인 화면까지 모두 막고 연결을 끊어요
+let siteClosed=false;
+addEventListener('keydown',e=>{ if(siteClosed){ e.stopImmediatePropagation(); e.preventDefault(); } },true);
+function closeSite(text){ if(siteClosed) return; siteClosed=true;
+  const o=document.createElement('div'); o.id='siteClosed'; o.setAttribute('role','alert'); o.style.cssText='position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:24px 16px;background:#0b1120;color:#eef0f6;text-align:center';
+  const c=document.createElement('div'); c.style.cssText='width:min(420px,100%);background:#18203a;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:30px 22px';
+  const h=document.createElement('h1'); h.textContent='본관 테라스 쉼터 점검 중이에요'; h.style.cssText='margin:0 0 10px;font-size:24px;line-height:1.3;color:#ffd27a;word-break:keep-all';
+  const p=document.createElement('p'); p.textContent=text||'점검이 끝나면 다시 문을 열게요. 끝나면 이 화면이 저절로 다시 열려요.'; p.style.cssText='margin:0;font-size:15px;color:#c6cde0;word-break:keep-all';
+  c.append(h,p); o.append(c); document.body.append(o);
+  if(document.activeElement) document.activeElement.blur();
+  try{ if(ac) ac.suspend(); }catch(e){}
+  if(lobby) lobby.presence({at:null}).catch(()=>{});
+  const r=room; room=null; if(r) r.leave().catch(()=>{}); syncPeers([]); setConn(false); }
 function startNotice(){ if(!db) return; noteUnsubs.push(db.doc('notice/chat').onSnapshot(s=>{ const d=s.exists?s.data():null; S.chatOn=!(d&&d.on===false); $('#chatOnBox').checked=S.chatOn; syncChatUI(); },()=>{})); noteUnsubs.push(db.doc('notice/current').onSnapshot(s=>{ const d=s.exists?s.data():null;
   showNotice(d&&typeof d.text==='string'?{text:d.text.replace(/[\u0000-\u0008\u000b-\u001f]/g,'').slice(0,120),reload:!!d.reload,at:num(d.at)}:null);
   if(isOwnerV&&d&&typeof d.text==='string'&&!$('#noticeIn').value) { $('#noticeIn').value=d.text; $('#noticeRl').checked=!!d.reload; } },()=>{})); }
@@ -2400,8 +2415,8 @@ const JOY={x:0,y:0,m:0,id:null};
   try{ const v=JSON.parse(ls.get('ter.stats')||'null'); if(v&&typeof v==='object') S.myDoc=v; }catch(e){}
   S.loaded=true; renderBoard();
   downloadsNS={save({filename,data}){ const u=URL.createObjectURL(data), a=document.createElement('a'); a.href=u; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),30000); return Promise.resolve(); }};
-  pollNotice(); setInterval(pollNotice,60000);
-  lobby=makeLobby(); if(lobby) await lobby.ready; enterRoom(S.room);
+  setInterval(pollNotice,30000); await pollNotice();
+  lobby=makeLobby(); if(lobby) await lobby.ready; if(!siteClosed) enterRoom(S.room);
 })();
 })();
 </script>
