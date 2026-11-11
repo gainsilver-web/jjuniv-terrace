@@ -322,7 +322,7 @@ a.passtag:hover{background:#ffe066}
 </div>
 <div class="sheet" id="inboxSheet" hidden>
   <div class="shotcard" role="dialog" aria-labelledby="inboxTitle" style="width:min(560px,100%)">
-    <div class="nedit"><span class="row" style="justify-content:space-between"><b style="font-family:var(--f-sign);font-weight:400;color:var(--lamp)">📢 공지사항 올리기</b><button class="btn" type="button" id="fwPreview">🎆 폭죽 미리보기</button></span>
+    <div class="nedit"><span class="row" style="justify-content:space-between"><b style="font-family:var(--f-sign);font-weight:400;color:var(--lamp)">📢 공지사항 올리기</b></span>
       <textarea class="field" id="noticeIn" maxlength="120" placeholder="예: 새 기능이 추가됐어요! 화면이 이상하면 F5를 눌러 새로고침해 주세요."></textarea>
       <div class="row" style="justify-content:space-between"><span class="row" style="gap:10px"><label class="row small" style="gap:6px"><input type="checkbox" id="noticeRl"> 새로고침 버튼</label><label class="row small" style="gap:6px"><input type="checkbox" id="chatOnBox" checked> 자유 대화 켜기</label></span><span class="row" style="gap:6px"><button class="btn" type="button" id="noticeOff">공지 내리기</button><button class="btn primary" type="button" id="noticeOn">공지 올리기</button></span></div>
       <p class="small" id="noticeMsg">공지는 지금 접속한 사람과 나중에 들어오는 사람 모두에게 화면 위에 떠요. 120자까지.</p></div>
@@ -907,63 +907,6 @@ const passSign=(()=>{ const g=new THREE.Group(); g.position.set(PASS.x+.35,0,PAS
   g.visible=false; return {g,board}; })();
 let POSTER_G=null;
 
-// ───────── 매일 18:01 '일봉사랑♥' 폭죽 (20초) ─────────
-const FW_LEN=20, FW_CX=0, FW_CZ=95, FW_Y=30;
-const fw=(()=>{
-  const W=640, cv=document.createElement('canvas'); cv.width=W; cv.height=150; const c=cv.getContext('2d');
-  c.fillStyle='#fff'; c.font='bold 120px "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif'; c.textAlign='left'; c.textBaseline='middle'; c.fillText('일봉사랑',10,80);
-  c.save(); c.translate(560,80); c.scale(3.1,3.1); c.beginPath(); c.moveTo(0,10); c.bezierCurveTo(-22,-4,-14,-24,0,-12); c.bezierCurveTo(14,-24,22,-4,0,10); c.closePath(); c.fill(); c.restore();
-  const d=c.getImageData(0,0,W,150).data;
-  const pal=[[1,.85,.35],[1,.45,.6],[.55,.85,1],[1,1,1],[1,.2,.35]];
-  const BURST=[[FW_CX-52,FW_Y+10,0],[FW_CX+50,FW_Y+12,2],[FW_CX-28,FW_Y+16,1],[FW_CX+30,FW_Y+18,4],[FW_CX,FW_Y+20,3]];
-  const P=[]; // {kind, tx,ty,tz, sx,sy,sz, vx,vy,vz, r,g,b, b0, heart, seed}
-  const HX=FW_CX-(560-W/2)*.16, HY=FW_Y;
-  for(let y=0;y<150;y+=2) for(let x=0;x<W;x+=2) if(d[(y*W+x)*4+3]>128){ const k=x>=500?4:Math.min(3,Math.floor((x-10)/122)), col=pal[k], bi=Math.floor(Math.random()*5), B=BURST[bi];
-    P.push({kind:0,tx:FW_CX-(x-W/2)*.16+(Math.random()-.5)*.08,ty:FW_Y-(y-75)*.16+(Math.random()-.5)*.08,tz:FW_CZ,sx:B[0],sy:B[1],sz:FW_CZ,c:col,heart:k===4,seed:Math.random()*6.28,delay:Math.random()*.5}); }
-  for(const [bx,by,bc] of BURST){ const col=pal[bc];
-    const bi=BURST.findIndex(q=>q[0]===bx);
-    for(let i=0;i<220;i++){ const a=Math.random()*Math.PI*2, b=Math.acos(2*Math.random()-1), s=5+Math.random()*1.4; P.push({kind:1,bi,bc,sx:bx,sy:by,sz:FW_CZ,vx:Math.sin(b)*Math.cos(a)*s,vy:Math.cos(b)*s*.9,vz:Math.sin(b)*Math.sin(a)*s*.4,c:col,seed:Math.random()*6.28}); }
-    for(let i=0;i<40;i++) P.push({kind:2,bi,bc,sx:bx,sy:-4,sz:FW_CZ,tx:bx,ty:by,c:col,frac:i/40}); }
-  const n=P.length, pos=new Float32Array(n*3), col=new Float32Array(n*3);
-  const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3)); geo.setAttribute('color',new THREE.BufferAttribute(col,3));
-  const tex=canvasTex(32,32,(g,w,hh)=>{ const gr=g.createRadialGradient(16,16,0,16,16,16); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(.35,'rgba(255,255,255,.7)'); gr.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=gr; g.fillRect(0,0,w,hh); });
-  // 글자는 작은 점(획 사이 틈이 메워지지 않게), 폭죽은 큰 점
-  const nT=P.filter(p=>p.kind===0).length, pts=new THREE.Group();
-  const mk=(from,cnt,size)=>{ const g2=new THREE.BufferGeometry(); g2.setAttribute('position',geo.attributes.position); g2.setAttribute('color',geo.attributes.color); g2.setDrawRange(from,cnt);
-    const o=new THREE.Points(g2,new THREE.PointsMaterial({size,map:tex,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,toneMapped:false})); o.frustumCulled=false; pts.add(o); };
-  mk(0,nT,.85); mk(nT,n-nT,1.3); pts.visible=false; scene.add(pts);
-  const light=new THREE.PointLight(0xffc0d8,0,160,1.2); light.position.set(FW_CX,FW_Y+2,FW_CZ-20); scene.add(light);
-  return {P,pos,col,geo,pts,light,HX,HY,pal};
-})();
-const ease=t=>1-Math.pow(1-Math.max(0,Math.min(1,t)),3);
-const FW_PER=2.7, FW_VOL=6, fwB0=bi=>2+bi*.35;
-function fwVolley(p,v){ const j=v===0?0:1; return [p.tx!==undefined&&p.kind===2?p.tx+Math.sin(v*3.1+p.bi)*5*j:p.sx+Math.sin(v*3.1+p.bi)*5*j, (p.kind===2?p.ty:p.sy)+Math.cos(v*2.3+p.bi*1.7)*3*j, fw.pal[(p.bc+v)%5]]; }
-function fwBursts(T){ let n=0; for(let bi=0;bi<5;bi++) for(let v=0;v<FW_VOL;v++) if(T>=fwB0(bi)+v*FW_PER) n++; return n; }
-function fwFrame(T){ const {P,pos,col}=fw; let glow=0;
-  for(let i=0;i<P.length;i++){ const p=P[i]; let x=0,y=-999,z=FW_CZ,br=0;
-    let pc=p.c;
-    if(p.kind===2){ const r=T-(fwB0(p.bi)-1.2); if(r>0){ const v=Math.floor(r/FW_PER), u=r-v*FW_PER; if(v<FW_VOL&&u<2.8){ const [bx,by,c]=fwVolley(p,v); pc=c; const H=by+4;
-        if(u<1.2){ const f=ease(u/1.2)-p.frac*.45; if(f>0){ x=bx+Math.sin(f*9+p.frac)*.15; y=-4+H*f; br=(1-p.frac)*.9; } }
-        else { const k=u-1.2, f=1-p.frac*.45; x=bx+(Math.random()-.5)*.08; y=-4+H*f-2-k*.6; br=(1-p.frac)*.55*Math.max(0,1-k/1.6)*(.7+.3*Math.random()); } } } }
-    else if(p.kind===1){ const r=T-fwB0(p.bi); if(r>0){ const v=Math.floor(r/FW_PER), t=r-v*FW_PER; if(v<FW_VOL&&t<2.6){ const [bx,by,c]=fwVolley(p,v); pc=c; const e=ease(t/.9); x=bx+p.vx*e*1.2; y=by+p.vy*e*1.2-t*t*.6; z=p.sz+p.vz*e; br=Math.max(0,1-t/2.6)*(.65+.35*Math.sin(t*20+p.seed)); glow=Math.max(glow,1-t/1.6); } } }
-    else { const t=T-3-p.delay; if(t>0){ const m=ease(t/1.5); x=p.sx+(p.tx-p.sx)*m; y=p.sy+(p.ty-p.sy)*m; z=FW_CZ;
-        if(p.heart&&T>4.5&&T<15.5){ const s=1+.08*Math.max(0,Math.sin(T*6)); x=fw.HX+(x-fw.HX)*s; y=fw.HY+(y-fw.HY)*s; }
-        br=Math.min(1,t/1.2)*(.75+.25*Math.sin(T*8+p.seed));
-        if(T>15.5){ const f=T-15.5; y-=f*f*.9+Math.sin(p.seed)*f*.3; x+=Math.cos(p.seed)*f*.4; br*=Math.max(0,1-f/4.5); }
-        if(T>4.5&&T<15.5) glow=Math.max(glow,.5); } }
-    pos[i*3]=x; pos[i*3+1]=y; pos[i*3+2]=z; col[i*3]=pc[0]*br; col[i*3+1]=pc[1]*br; col[i*3+2]=pc[2]*br; }
-  fw.geo.attributes.position.needsUpdate=true; fw.geo.attributes.color.needsUpdate=true; fw.light.intensity=glow*1.4; }
-let fwLocal=null, fwPlayed='';
-function fwTime(){ if(fwLocal!==null){ const t=(performance.now()-fwLocal)/1000; if(t<FW_LEN) return t; fwLocal=null; }
-  const d=new Date(), s=d.getHours()*3600+d.getMinutes()*60+d.getSeconds()+d.getMilliseconds()/1000-64860; return s>=0&&s<FW_LEN?s:-1; }
-function stepFW(){ const T=fwTime(); if(T<0){ if(fw.pts.visible){ fw.pts.visible=false; fw.light.intensity=0; } return; }
-  if(!fw.pts.visible){ fw.pts.visible=true; const key=new Date().toDateString()+(fwLocal!==null?'L'+fwLocal:'');
-    if(fwPlayed!==key){ fwPlayed=key; banner('🎆 일봉사랑♥ 폭죽!'); if(S.sound&&audio()) whoosh(.8); } fwBoomN=fwBursts(T); }
-  const n=fwBursts(T); if(n>fwBoomN){ fwBoomN=n; boom(); }
-  fwFrame(T); }
-let fwBoomN=0;
-function boom(){ if(!S.sound||!audio()) return; const t=ac.currentTime, s=ac.createBufferSource(); s.buffer=noiseBuf(.6); const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=700; const g=ac.createGain(); g.gain.setValueAtTime(.35,t); g.gain.exponentialRampToValueAtTime(.0001,t+.6); s.connect(f).connect(g).connect(ac.destination); s.start(t); }
-function playFireworks(){ fwLocal=performance.now(); fw.pts.visible=false; }
 let passLb=null; const mkPassLb=()=>{ const el=document.createElement('div'); el.className='lbl'; const a=document.createElement('a'); a.className='tag jjtag passtag'; a.href='https://cyber.jj.ac.kr/local/ubonline/ai.php'; a.target='_blank'; a.rel='noopener';
   const i=document.createElement('i'); i.textContent='🚗'; i.style.background='#ffd21f'; const n=document.createElement('span'); n.textContent='AI 추월차선 · 포스터를 누르면 강좌로 가요'; a.append(i,n); el.append(a); labelsEl.appendChild(el); return {el}; };
 function stepPass(t){ if(!passLb) passLb=mkPassLb(); const p=screenOf({x:0,z:-.85,y:0},6.4);
@@ -2450,7 +2393,7 @@ function frame(){
     o.av.holdIdx=pr.hd??-1; if(o.av.holdIdx>=3&&seated&&s&&s.stool) o.av.holdIdx=-1; poseAvatar(o.av,dt,mv,seated,t); placeLabel(o,false,now);
   }
   placeLabel(me,true,now); me.lb.el.style.opacity=(t-(me.av.hugT??-99))<HUG_LEN?'0':'';
-  stepJJ(dt,t); stepJate(dt,t); stepPunch(dt,t); stepDN(dt); stepPocha(); stepStall(t); stepTrash(now); stepHae(t); stepPass(t); stepFW();
+  stepJJ(dt,t); stepJate(dt,t); stepPunch(dt,t); stepDN(dt); stepPocha(); stepStall(t); stepTrash(now); stepHae(t); stepPass(t);
   if(S.hugCamT!=null&&t-S.hugCamT<HUG_LEN){ const k=Math.min(1,dt*2.6), F=jjF(), Rr=jjR(), cx=jj.x+F[0]*.35, cz=jj.z+F[1]*.35;
     camera.position.lerp(tgt.set(cx+F[0]*2.6+Rr[0]*2.2,1.95,cz+F[1]*2.6+Rr[1]*2.2),k); controls.target.lerp(tgt.set(cx,1.3,cz),k); }
   stepPlanes(dt); stepBubbles(dt,t);
@@ -2532,7 +2475,6 @@ function startNotice(){ if(!db) return; noteUnsubs.push(db.doc('notice/chat').on
 $('#noticeOn').onclick=async()=>{ const t=$('#noticeIn').value.trim().slice(0,120); if(!t){ $('#noticeMsg').textContent='공지 내용을 적어 주세요.'; return; }
   try{ await db.doc('notice/current').set({text:t,reload:$('#noticeRl').checked,at:Date.now()}); $('#noticeMsg').textContent='공지를 올렸어요. 모든 분 화면 위에 떠요 📢'; }catch(e){ $('#noticeMsg').textContent='올리지 못했어요. 잠시 뒤 다시 해 주세요.'; } };
 $('#noticeOff').onclick=async()=>{ try{ await db.doc('notice/current').set({text:'',reload:false,at:Date.now()}); $('#noticeIn').value=''; $('#noticeMsg').textContent='공지를 내렸어요.'; }catch(e){ $('#noticeMsg').textContent='내리지 못했어요. 잠시 뒤 다시 해 주세요.'; } };
-$('#fwPreview').onclick=()=>{ $('#inboxSheet').hidden=true; playFireworks(); setStatus('내 화면에서만 폭죽을 미리 봐요. 매일 18:01에는 모두에게 터져요 🎆'); };
 function startNotes(user){ startNotice();
   if(!db||!S.uid) return;
   noteUnsubs.push(db.doc('notes/'+S.uid).onSnapshot(s=>{ const d=s.exists?s.data():null; myNotes=d&&Array.isArray(d.items)?d.items.filter(x=>x&&typeof x.t==='number'):[]; if(!$('#noteSheet').hidden) syncNoteCnt(); },()=>{}));
