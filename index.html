@@ -1768,9 +1768,9 @@ const pm=(()=>{ // AI 추월차선 카트 (포스터 속 파란 차) · 누르�
   const topY=z=>{ if(z>=P[0][0]) return P[0][1]; for(let k=0;k<P.length-1;k++){ const [z0,y0]=P[k],[z1,y1]=P[k+1]; if(z<=z0&&z>=z1) return lerp(y0,y1,sstep((z0-z)/(z0-z1))); } return P[P.length-1][1]; };
   const halfW=y=>y<.6?.74:lerp(.74,.5,(y-.6)/.45), halfL=(x,y)=>1.32-.28*Math.pow(Math.abs(x)/.74,2.4);
   const R=.13, WZ=[.82,-.86];
-  const wheelCut=(y,z)=>{ let d=1; for(const wz of WZ) d=Math.min(d,Math.hypot(y-.27,z-wz)-.33); return d; };
+  const wheelCut=(x,y,z)=>{ let d=1; for(const wz of WZ) d=Math.min(d,Math.hypot(y-.27,z-wz)-.33); return Math.max(d,.5-Math.abs(x)); }; // 바퀴집은 양옆에만
   const bodyF=(x,y,z)=>{ const qx=Math.abs(x)-halfW(y)+R, qy=Math.max(.13-y,y-topY(z))+R, qz=Math.abs(z)-halfL(x,y)+R;
-    let d=Math.hypot(Math.max(qx,0),Math.max(qy,0),Math.max(qz,0))+Math.min(Math.max(qx,qy,qz),0)-R; return Math.max(d,-wheelCut(y,z)); };
+    let d=Math.hypot(Math.max(qx,0),Math.max(qy,0),Math.max(qz,0))+Math.min(Math.max(qx,qy,qz),0)-R; return Math.max(d,-wheelCut(x,y,z)); };
   const bg=surfaceNet(bodyF,[-.85,.05,-1.45],[.85,1.15,1.45],.022);
   { // 파란 차체 + 위쪽에 흰 줄무늬 두 줄
     const pos=bg.attributes.position, nor=bg.attributes.normal, col=new Float32Array(pos.count*3), B=new THREE.Color(0x0a3cc8), W=new THREE.Color(0xf4f6fb);
@@ -2544,7 +2544,7 @@ $('#noticeReload').onclick=()=>{ try{ location.reload(); }catch(e){ setStatus('�
 $('#chatOnBox').onchange=async()=>{ const on=$('#chatOnBox').checked; try{ await db.doc('notice/chat').set({on,at:Date.now()}); $('#noticeMsg').textContent=on?'자유 대화를 켰어요 💬':'자유 대화를 껐어요. 모두 정해진 문장만 쓸 수 있어요.'; }catch(e){ $('#chatOnBox').checked=!on; $('#noticeMsg').textContent='바꾸지 못했어요. 잠시 뒤 다시 해 주세요.'; } };
 // ── 새 버전 자동 적용: notice.json의 version이 이 파일의 APP_VER와 다르면 새로 불러와요 ──
 // 다른 창을 보고 있거나 1분 넘게 손을 안 댔으면 바로 새로고침, 아니면 위에 새로고침 버튼을 띄워요
-const APP_VER='2026-11-20e'; let lastInput=Date.now(), updWanted=null;
+const APP_VER='2026-11-20f'; let lastInput=Date.now(), updWanted=null;
 ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,()=>{ lastInput=Date.now(); },{passive:true,capture:true}));
 function goUpdate(v){ let tried=null; try{ tried=sessionStorage.getItem('ter.upd'); sessionStorage.setItem('ter.upd',v); }catch(e){} if(tried===v) return false;
   location.replace(location.pathname+'?v='+encodeURIComponent(v)+location.hash); return true; }
