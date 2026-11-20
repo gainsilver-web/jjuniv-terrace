@@ -603,7 +603,7 @@ function showOver() {
   $('oQuip').textContent = score < 300 ? '방금 건 몸풀기였죠? 진짜는 지금부터.' : score < 1000 ? '오, 폼 올라오는 중. 한 판만 더?' :
     score < 2500 ? '이 정도면 육상부에서 연락 올 각.' : '이건 좀 치는데요? ' + CHARS[sel].name + '도 놀랐어요.';
   $('hud').hidden = true; $('over').hidden = false; $('btnRetry').focus({ preventScroll: true });
-  submitScore();
+  submitScore(score);
 }
 
 /* ---------- 랭킹: 부서·학과별 최고 점수 TOP 10 ---------- */
@@ -632,16 +632,19 @@ async function fetchRank() {
   const o = (await r.json()) || {};
   return topDepts(Object.keys(o).map(k => ({ name: String(o[k].name || '').slice(0, 12), score: +o[k].score, char: o[k].char })));
 }
-async function submitScore() {
+async function submitScore(cur) { // 이번 판 점수를 올려요 (랭킹을 만들기 전 기록은 빼고)
+  cur = Math.max(0, Math.round(+cur || 0));
   const el = $('oRank'); if (!RANK_URL && !bridge) { el.hidden = true; return; }
   el.hidden = false;
   if (!nick()) { el.textContent = '부서·학과 이름을 적으면 랭킹에 올라가요. 캐릭터 바꾸기 화면에서 입력할 수 있어요.'; return; }
   el.textContent = '랭킹에 올리는 중…';
   try {
-    if (bridge) { const r = await askParent({ op: 'submit', dept: nick(), score: best, char: sel });
+    if (bridge) { const r = await askParent({ op: 'submit', dept: nick(), score: cur, char: sel });
       el.textContent = r.rank ? nick() + '은(는) 지금 ' + r.rank + '위예요! (부서 최고 ' + r.score.toLocaleString('ko-KR') + '점)' : '랭킹에 올렸어요.'; return; }
-    if (best > 0) await fetch(RANK_URL + '/scores/' + uid + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: nick(), score: best, char: sel, t: Date.now() }) });
+    let rb = 0; try { const o = JSON.parse(localStorage.getItem('jjrun.rbest') || '{}'); if (o.dept === nick()) rb = +o.score || 0; } catch (e) {}
+    rb = Math.max(rb, cur); try { localStorage.setItem('jjrun.rbest', JSON.stringify({ dept: nick(), score: rb })); } catch (e) {}
+    if (rb > 0) await fetch(RANK_URL + '/scores/' + uid + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: nick(), score: rb, char: sel, t: Date.now() }) });
     const list = await fetchRank(), i = list.findIndex(v => v.name === nick());
     el.textContent = i >= 0 ? nick() + '은(는) 지금 ' + (i + 1) + '위예요! (부서 최고 ' + list[i].score.toLocaleString('ko-KR') + '점)' : '랭킹에 올렸어요.';
   } catch (e) { el.textContent = (e && /^bad:/.test(e.message)) ? e.message.slice(4) : '랭킹에 올리지 못했어요. 점수는 이 기기에만 저장됐어요.'; }
