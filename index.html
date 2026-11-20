@@ -1756,50 +1756,64 @@ const LIONS=[[-10.35,14.95],[10.35,14.95]];
 // ───────── 스트레스 펀치기계 (제이제이 맞은편) ─────────
 const PUNCH={x:12.4,z:.9,ry:-.45};
 const PF=[Math.sin(PUNCH.ry),Math.cos(PUNCH.ry)];
-const pm=(()=>{
+const pm=(()=>{ // 제이제이 런 오락기 (누르면 게임이 화면 가득 열려요)
   const g=new THREE.Group(); g.position.set(PUNCH.x,0,PUNCH.z); g.rotation.y=PUNCH.ry; scene.add(g);
-  const red=new THREE.MeshPhysicalMaterial({color:0xd8262c,roughness:.35,clearcoat:.8}), ylw=std(0xffcf2e,{roughness:.4}), dark=std(0x1b1d22,{roughness:.5}), chrome=std(0xc9ced6,{metalness:.8,roughness:.25});
+  const blue=new THREE.MeshPhysicalMaterial({color:0x2a4fc4,roughness:.4,clearcoat:.6,emissive:0x0a1440,emissiveIntensity:.3}), ylw=std(0xffcf2e,{roughness:.4}), dark=std(0x14162a,{roughness:.5}), chrome=std(0xc9ced6,{metalness:.8,roughness:.25});
   const add=(geo,mat,x,y,z)=>{ const o=mesh(geo,mat,x,y,z); o.userData.punch=true; g.add(o); return o; };
-  add(new THREE.BoxGeometry(1.15,.12,1.0),dark,0,.06,0);
-  add(new THREE.BoxGeometry(.95,1.85,.62),red,0,1.0,-.1);
-  for(const s of [-1,1]) add(new THREE.BoxGeometry(.05,1.7,.64),ylw,s*.49,1.0,-.1);
-  add(new THREE.BoxGeometry(.98,.12,.66),ylw,0,1.95,-.1);
-  // 점수판
-  const cv=document.createElement('canvas'); cv.width=256; cv.height=112; const ctx=cv.getContext('2d'); const tex=new THREE.CanvasTexture(cv); tex.encoding=THREE.sRGBEncoding;
-  const draw=(n,sub)=>{ ctx.fillStyle='#0b0c10'; ctx.fillRect(0,0,256,112); ctx.fillStyle='#3a0d0d'; ctx.font='bold 70px "Courier New",monospace'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('888',128,50);
-    ctx.fillStyle='#ff3b30'; ctx.shadowColor='#ff3b30'; ctx.shadowBlur=14; ctx.fillText(String(Math.round(n)).padStart(3,'0'),128,50); ctx.shadowBlur=0;
-    ctx.fillStyle='#ffd27a'; ctx.font='bold 18px sans-serif'; ctx.fillText(sub||'PUNCH!',128,98); tex.needsUpdate=true; };
-  draw(0,'펀치 한 방!');
-  add(new THREE.PlaneGeometry(.78,.34),new THREE.MeshBasicMaterial({map:tex}),0,1.62,.215);
+  add(new THREE.BoxGeometry(1.0,.08,.92),dark,0,.04,0);
+  add(new THREE.BoxGeometry(.9,1.05,.74),blue,0,.6,-.05);
+  add(new THREE.BoxGeometry(.9,1.12,.5),blue,0,1.66,-.17);
+  for(const s of [-1,1]){ add(new THREE.BoxGeometry(.04,2.25,.8),ylw,s*.47,1.12,-.06); add(new THREE.BoxGeometry(.045,.9,.06),std(0xff6f59,{roughness:.5}),s*.475,.75,.32); }
+  // 조작판: 조이스틱 + 버튼 두 개
+  const cp=new THREE.Group(); cp.position.set(0,1.14,.2); cp.rotation.x=.32; g.add(cp);
+  const cpb=mesh(new THREE.BoxGeometry(.88,.07,.36),dark,0,0,0); cpb.userData.punch=true; cp.add(cpb);
+  const stick=mesh(new THREE.CylinderGeometry(.016,.016,.14,8),chrome,-.2,.09,0); cp.add(stick);
+  const ball=mesh(new THREE.SphereGeometry(.045,14,10),std(0xff3b30,{roughness:.3}),-.2,.17,0); cp.add(ball);
+  [[.06,0xffcf2e],[.2,0x2ec4b6]].forEach(([x,c])=>{ const b=mesh(new THREE.CylinderGeometry(.04,.04,.04,16),std(c,{roughness:.3,emissive:c,emissiveIntensity:.25}),x,.05,0); cp.add(b); });
+  // 화면: 노을 하늘 + 달리는 길 + 깜빡이는 시작 글자
+  const cv=document.createElement('canvas'); cv.width=256; cv.height=192; const ctx=cv.getContext('2d'); const tex=new THREE.CanvasTexture(cv); tex.encoding=THREE.sRGBEncoding;
+  let blink=false;
+  const draw=()=>{ const gr=ctx.createLinearGradient(0,0,0,192); gr.addColorStop(0,'#272a6e'); gr.addColorStop(.62,'#ff9a6c'); gr.addColorStop(.62,'#3b3566'); gr.addColorStop(1,'#1a1740'); ctx.fillStyle=gr; ctx.fillRect(0,0,256,192);
+    ctx.strokeStyle='rgba(255,210,63,.75)'; ctx.lineWidth=2; for(const k of [-1,0,1]){ ctx.beginPath(); ctx.moveTo(128+k*14,119); ctx.lineTo(128+k*120,192); ctx.stroke(); }
+    ctx.fillStyle='#ffd23f'; for(let k=0;k<5;k++){ ctx.beginPath(); ctx.arc(128,132+k*12,3+k,0,6.3); ctx.fill(); }
+    ctx.fillStyle='#fff5e4'; ctx.beginPath(); ctx.ellipse(128,150,13,15,0,0,6.3); ctx.fill(); ctx.fillStyle='#3f6df2'; ctx.fillRect(116,143,24,6);
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#ff6f59'; ctx.font='bold 38px "Black Han Sans","Jua",sans-serif'; ctx.fillText('제이제이 런',128,48);
+    if(blink){ ctx.fillStyle='#fff5e4'; ctx.font='bold 17px sans-serif'; ctx.fillText('▶ 눌러서 시작',128,92); } tex.needsUpdate=true; };
+  draw(); setInterval(()=>{ blink=!blink; draw(); },650);
+  add(new THREE.BoxGeometry(.8,.62,.04),dark,0,1.66,.085);
+  const scr=add(new THREE.PlaneGeometry(.72,.54),new THREE.MeshBasicMaterial({map:tex}),0,1.66,.108);
   // 간판
-  const sign=canvasTex(512,128,(c,w,hh)=>{ c.fillStyle='#ffcf2e'; c.fillRect(0,0,w,hh); c.fillStyle='#d8262c'; c.font='bold 64px "Black Han Sans",sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText('스트레스 펀치',w/2,hh/2+4); });
-  add(new THREE.BoxGeometry(1.1,.32,.12),[ylw,ylw,ylw,ylw,new THREE.MeshBasicMaterial({map:sign}),ylw],0,2.2,-.1);
-  // 샌드백 팔 (맞으면 뒤로 젖혀짐)
-  const arm=new THREE.Group(); arm.position.set(0,1.32,.2); g.add(arm);
-  const bar=mesh(new THREE.CylinderGeometry(.03,.03,.5,10),chrome,0,0,.25); bar.rotation.x=Math.PI/2; bar.userData.punch=true; arm.add(bar);
-  const pad=mesh(new THREE.CylinderGeometry(.19,.19,.32,24),red,0,-.2,.52); pad.userData.punch=true; arm.add(pad);
-  const padTop=mesh(new THREE.SphereGeometry(.19,20,10,0,Math.PI*2,0,Math.PI/2),red,0,-.04,.52); arm.add(padTop);
-  const ring=mesh(new THREE.TorusGeometry(.19,.025,8,24),ylw,0,-.12,.52); ring.rotation.x=Math.PI/2; arm.add(ring);
-  const glow=new THREE.PointLight(0xff5040,.6,4,2); glow.position.set(0,1.7,.8); g.add(glow);
-  const hit=new THREE.Mesh(new THREE.BoxGeometry(1.2,2.4,1.6),new THREE.MeshBasicMaterial({visible:false})); hit.position.set(0,1.2,.2); hit.userData.punch=true; g.add(hit);
-  const bcv=document.createElement('canvas'); bcv.width=256; bcv.height=160; const bctx=bcv.getContext('2d'); const btex=new THREE.CanvasTexture(bcv); btex.encoding=THREE.sRGBEncoding;
-  const drawBest=(sc,who)=>{ bctx.fillStyle='#1b1d22'; bctx.fillRect(0,0,256,160); bctx.strokeStyle='#ffcf2e'; bctx.lineWidth=8; bctx.strokeRect(4,4,248,152);
-    bctx.textAlign='center'; bctx.fillStyle='#ffcf2e'; bctx.font='bold 26px sans-serif'; bctx.fillText('🏆 최고 점수',128,40);
-    bctx.fillStyle='#fff'; bctx.font='bold 64px "Courier New",monospace'; bctx.fillText(sc?String(sc):'---',128,104);
-    bctx.fillStyle='#a3acc6'; bctx.font='20px sans-serif'; bctx.fillText(who||'첫 기록을 남겨 보세요',128,140); btex.needsUpdate=true; };
-  drawBest(0,'');
-  const post=mesh(new THREE.CylinderGeometry(.035,.035,1.3,8),chrome,.95,.65,-.05); g.add(post);
-  const board=mesh(new THREE.PlaneGeometry(.62,.39),new THREE.MeshBasicMaterial({map:btex}),.95,1.48,0,false); board.rotation.y=-.25; g.add(board);
-  return {g,arm,draw,drawBest,hit,hitT:-9,show:0,shown:0,best:0,who:''};
+  const sign=canvasTex(512,128,(c,w,hh)=>{ c.fillStyle='#ffcf2e'; c.fillRect(0,0,w,hh); c.fillStyle='#2a4fc4'; c.font='bold 64px "Black Han Sans",sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText('제이제이 런',w/2,hh/2+4); });
+  add(new THREE.BoxGeometry(.94,.28,.22),[ylw,ylw,ylw,ylw,new THREE.MeshBasicMaterial({map:sign}),ylw],0,2.38,-.1);
+  const glow=new THREE.PointLight(0x7fa6ff,.55,4,2); glow.position.set(0,1.8,.9); g.add(glow);
+  const hit=new THREE.Mesh(new THREE.BoxGeometry(1.2,2.6,1.4),new THREE.MeshBasicMaterial({visible:false})); hit.position.set(0,1.3,.1); hit.userData.punch=true; g.add(hit);
+  const arm=new THREE.Group(); g.add(arm);
+  return {g,arm,draw:()=>{},drawBest:()=>{},hit,hitT:-9,show:0,shown:0,best:0,who:'',scr};
 })();
 const pmLb=(()=>{ const el=document.createElement('div'); el.className='lbl'; const tag=document.createElement('button'); tag.type='button'; tag.className='tag jjtag';
-  const i=document.createElement('i'); i.textContent='🥊'; i.style.background='#ffcf2e'; const n=document.createElement('span'); n.textContent='스트레스 펀치'; tag.append(i,n); tag.onclick=()=>goPunch(); el.append(tag); labelsEl.appendChild(el); return {el}; })();
+  const i=document.createElement('i'); i.textContent='🕹️'; i.style.background='#ffcf2e'; const n=document.createElement('span'); n.textContent='제이제이 런'; tag.append(i,n); tag.onclick=()=>goPunch(); el.append(tag); labelsEl.appendChild(el); return {el}; })();
 function punchSpot(){ return [PUNCH.x+PF[0]*1.05, PUNCH.z+PF[1]*1.05]; }
 const PR=[Math.cos(PUNCH.ry),-Math.sin(PUNCH.ry)];
 function qSpot(i){ const [sx,sz]=punchSpot(); const a=Math.min(i,4)*.9, b=Math.max(0,i-4)*.9; return nearestWalk(sx+PF[0]*a-b, sz+PF[1]*a)||[sx,sz]; }
 S.pq=0; S.tries=0; S.myBest=0; S.qIdx=-1; S.punchTop={score:0,nick:''};
 function goPunch(){ if(!S.entered) return; closePops(); if(S.seat!==null) standUp(true);
-  if(S.pq) return; S.pq=Date.now(); S.tries=0; S.myBest=0; S.qIdx=-1; S.qT=0; syncPunchSide(); $('#punchSide').hidden=false; pushPresence(true); stepQueue(true); }
+  const [sx,sz]=punchSpot(); if(Math.hypot(S.x-sx,S.z-sz)<.4){ S.tx=null; S.path=[]; openRun(); return; }
+  S.path=planPath(sx,sz); [S.tx,S.tz]=S.path.shift(); S.goSeat=null; S.goHug=false; S.goStall=false; S.goOffer=false; S.goHae=false; S.goPunch=true; }
+// 제이제이 런: 화면 가득 게임 창을 띄우고, 닫으면 테라스로 돌아와요 (게임 중엔 테라스 그리기를 쉬어요)
+const JJRUN={open:false,el:null,snd:false};
+function openRun(){ if(JJRUN.open) return; S.ry=PUNCH.ry+Math.PI; JJRUN.open=true; closePops();
+  const o=document.createElement('div'); o.id='runWrap'; o.setAttribute('role','dialog'); o.setAttribute('aria-label','제이제이 런 게임');
+  o.style.cssText='position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;background:#1a1740';
+  const bar=document.createElement('div'); bar.style.cssText='display:flex;align-items:center;gap:10px;padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px));padding-top:max(8px,env(safe-area-inset-top,0px));background:#14122f;color:#fff5e4;font:600 15px/1.2 sans-serif';
+  const tt=document.createElement('span'); tt.textContent='🕹️ 제이제이 런'; tt.style.flex='1';
+  const x=document.createElement('button'); x.type='button'; x.textContent='✕ 테라스로 돌아가기'; x.style.cssText='border:0;border-radius:999px;padding:8px 14px;background:#ffd23f;color:#1a1740;font:700 14px sans-serif;cursor:pointer'; x.onclick=closeRun;
+  bar.append(tt,x);
+  const f=document.createElement('iframe'); f.src='jjrun.html'; f.title='제이제이 런'; f.allow='autoplay; fullscreen'; f.style.cssText='flex:1;width:100%;border:0;display:block;background:#1a1740';
+  f.addEventListener('load',()=>{ try{ f.focus(); }catch(e){} });
+  o.append(bar,f); document.body.appendChild(o); JJRUN.el=o;
+  JJRUN.snd=!!(ac&&ac.state==='running'); if(JJRUN.snd) ac.suspend().catch(()=>{});
+  for(const k in keys) keys[k]=false; }
+function closeRun(){ if(!JJRUN.open) return; JJRUN.open=false; if(JJRUN.el){ JJRUN.el.remove(); JJRUN.el=null; } if(JJRUN.snd&&ac) ac.resume().catch(()=>{}); setStatus('테라스로 돌아왔어요. 또 달리고 싶으면 오락기를 눌러요 🕹️'); }
 function leaveQueue(msg){ if(!S.pq) return; S.pq=0; S.qIdx=-1; closePunch(); $('#punchSide').hidden=true; $('#qLine').hidden=true; pushPresence(true); if(msg) setStatus(msg); }
 function queueList(){ const L=[]; for(const [peer,o] of others) if(o.pr.pq>0) L.push({peer,pq:o.pr.pq,nick:o.pr.nick}); if(S.pq) L.push({peer:'~me',pq:S.pq,nick:S.nick});
   return L.sort((a,b)=>a.pq-b.pq||(a.peer<b.peer?-1:1)); }
@@ -2442,7 +2456,7 @@ function frame(){
   if(S.tx!==null){
     const dx=S.tx-S.x, dz=S.tz-S.z, d=Math.hypot(dx,dz);
     if(d<.06&&S.path&&S.path.length){ [S.tx,S.tz]=S.path.shift(); }
-    else if(d<.06){ S.tx=null; if(S.goHug){ S.goHug=false; S.goPunch=false; S.goStall=false; S.goOffer=false; S.goHae=false; beginHug(); } if(S.goPunch){ S.goPunch=false; } if(S.goStall){ S.goStall=false; openStall(); } if(S.goHae){ S.goHae=false; openHae(); } if(S.goOffer){ S.goOffer=false; openOffer(); }
+    else if(d<.06){ S.tx=null; if(S.goHug){ S.goHug=false; S.goPunch=false; S.goStall=false; S.goOffer=false; S.goHae=false; beginHug(); } if(S.goPunch){ S.goPunch=false; openRun(); } if(S.goStall){ S.goStall=false; openStall(); } if(S.goHae){ S.goHae=false; openHae(); } if(S.goOffer){ S.goOffer=false; openOffer(); }
       if(S.goSeat!==null&&S.seat===S.goSeat){ const s=SEATS[S.seat]; if(Math.hypot(S.x-s.x,S.z-s.z)>.1){ S.tx=s.x; S.tz=s.z; } else { S.ry=s.f; S.goSeat=null; computeOcc(); setStatus(s.stool?(isMorning()?'포차에 앉았어요. 아침에는 옆 해장국 카운터에서 해장국을 사 오세요 🍲':'포차에 앉았어요! 주문하기로 안주와 마실 것을 골라 보세요 🏮'):'벤치에 앉았어요. 고민을 적어 날려 보내도 좋아요.'); if(0) setStatus('벤치에 앉았어요. 고민을 적어 날려 보내도 좋아요.'); } }
       pushPresence(true); }
     else { const step=Math.min(d,dt*4); const ox=S.x,oz=S.z; if(S.goSeat!==null&&S.path.length===0&&d<.7){ S.x+=dx/d*step; S.z+=dz/d*step; } else stepTo(S.x+dx/d*step,S.z+dz/d*step); if(Math.hypot(S.x-ox,S.z-oz)<step*.2){ S.stuck=(S.stuck||0)+dt; if(S.stuck>.4){ S.stuck=0; S.tx=null; S.path=[]; S.goSeat=null; if(S.seat!==null&&S.tx===null){ S.seat=null; computeOcc(); } } } else S.stuck=0; if(S.goSeat===null||d>.3) S.ry=lerpAng(S.ry,Math.atan2(dx,dz),Math.min(1,dt*12)); moving=true; pushPresence(); }
@@ -2470,7 +2484,7 @@ function frame(){
     camera.position.lerp(tgt.set(cx+F[0]*2.6+Rr[0]*2.2,1.95,cz+F[1]*2.6+Rr[1]*2.2),k); controls.target.lerp(tgt.set(cx,1.3,cz),k); }
   stepPlanes(dt); stepBubbles(dt,t);
   markerT+=dt; marker.material.opacity=Math.max(0,.9-markerT*1.2); marker.scale.setScalar(1+markerT*1.5);
-  controls.update(); keepCamOut(); renderer.render(scene,camera); requestAnimationFrame(frame);
+  controls.update(); keepCamOut(); if(!JJRUN.open) renderer.render(scene,camera); requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 setInterval(computeOcc,1000);
@@ -2525,7 +2539,7 @@ $('#noticeReload').onclick=()=>{ try{ location.reload(); }catch(e){ setStatus('�
 $('#chatOnBox').onchange=async()=>{ const on=$('#chatOnBox').checked; try{ await db.doc('notice/chat').set({on,at:Date.now()}); $('#noticeMsg').textContent=on?'자유 대화를 켰어요 💬':'자유 대화를 껐어요. 모두 정해진 문장만 쓸 수 있어요.'; }catch(e){ $('#chatOnBox').checked=!on; $('#noticeMsg').textContent='바꾸지 못했어요. 잠시 뒤 다시 해 주세요.'; } };
 // ── 새 버전 자동 적용: notice.json의 version이 이 파일의 APP_VER와 다르면 새로 불러와요 ──
 // 다른 창을 보고 있거나 1분 넘게 손을 안 댔으면 바로 새로고침, 아니면 위에 새로고침 버튼을 띄워요
-const APP_VER='2026-11-20b'; let lastInput=Date.now(), updWanted=null;
+const APP_VER='2026-11-20c'; let lastInput=Date.now(), updWanted=null;
 ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,()=>{ lastInput=Date.now(); },{passive:true,capture:true}));
 function goUpdate(v){ let tried=null; try{ tried=sessionStorage.getItem('ter.upd'); sessionStorage.setItem('ter.upd',v); }catch(e){} if(tried===v) return false;
   location.replace(location.pathname+'?v='+encodeURIComponent(v)+location.hash); return true; }
