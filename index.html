@@ -259,6 +259,7 @@ a.passtag:hover{background:#ffe066}
     <button class="ib" id="setBtn" type="button" title="설정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
   </div>
   <span class="tchip" id="workChip">퇴근 18:00</span>
+  <span class="tchip" id="wxChip" hidden></span>
   <span class="tchip coin" id="coinChip" title="쓰레기를 주워 쓰레기통에 넣으면 달란트를 받아요">🪙 <b id="coinN">0</b> 달란트<span id="carryN"></span></span>
 </div>
 
@@ -948,9 +949,9 @@ const DUSK_BG=canvasTex(16,256,(g,w,hh)=>{const gr=g.createLinearGradient(0,0,0,
 const SUN=new THREE.Mesh(new THREE.SphereGeometry(9,24,16),new THREE.MeshBasicMaterial({color:0xfff6d8,fog:false})); SUN.position.set(110,120,200); scene.add(SUN);
 // 하늘 돔: 낮·노을·밤 그라데이션을 k에 따라 부드럽게 섞어요
 const SKY=new THREE.Mesh(new THREE.SphereGeometry(450,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
-  uniforms:{k:{value:1}},
+  uniforms:{k:{value:1},w:{value:0}},
   vertexShader:`varying float vh; void main(){ vh=normalize(position).y; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
-  fragmentShader:`uniform float k; varying float vh;
+  fragmentShader:`uniform float k; uniform float w; varying float vh;
     vec3 grad(vec3 b,vec3 m,vec3 t,float h){ return h<.25?mix(b,m,smoothstep(-.05,.25,h)):mix(m,t,smoothstep(.25,.8,h)); }
     void main(){ float h=vh;
       vec3 day=grad(vec3(.93,.95,.96),vec3(.55,.74,.93),vec3(.25,.53,.85),h);
@@ -958,6 +959,7 @@ const SKY=new THREE.Mesh(new THREE.SphereGeometry(450,32,16),new THREE.ShaderMat
       vec3 dusk=grad(vec3(1.,.82,.55),vec3(1.,.6,.32),vec3(.76,.44,.38),h);
       vec3 night=grad(vec3(.18,.18,.27),vec3(.05,.09,.19),vec3(.01,.02,.05),h);
       vec3 c=k<.3?mix(day,gold,smoothstep(0.,.3,k)):k<.6?mix(gold,dusk,smoothstep(.3,.6,k)):mix(dusk,night,smoothstep(.6,1.,k));
+      float g=dot(c,vec3(.3,.59,.11)); c=mix(c,vec3(g*.74,g*.78,g*.84),min(1.,w*1.5));
       gl_FragColor=vec4(pow(c,vec3(2.2)),1.); }`}));
 SKY.renderOrder=-10; scene.add(SKY); scene.background=null;
 const DN={k:null,want:1};
@@ -977,9 +979,79 @@ function applyDN(k){
   renderer.toneMappingExposure=tri(1.0,1.02,.95,k);
   SPOTS.forEach(s=>s.intensity=.45*Math.max(0,(k-.5)/.5)); LIT.forEach(m=>m.emissiveIntensity=tri(.08,.3,.5,k)); if(DOOR_GLASS) DOOR_GLASS.emissiveIntensity=tri(0,.08,.22,k);
   const on=S.lightsOn&&k>.52; if(DN.bulbs!==on){ DN.bulbs=on; setLights(on); }
+  const w=WX.curDim; SKY.material.uniforms.w.value=w;
+  if(w>0){ HEMI.intensity*=1-.3*w; moonLight.intensity*=1-.65*w; if(w>.3) SUN.visible=false; if(MOON&&w>.35) MOON.visible=false; if(STARS) STARS.material.opacity*=1-w;
+    scene.fog.color.lerp(_cb.set(k<.6?0xa9b2bd:0x161c2a),w*.75); scene.fog.density*=1+1.5*w; }
 }
-function stepDN(dt){ SKY.position.copy(camera.position); DN.want=dnTarget(); if(DN.k===null){ DN.k=DN.want; applyDN(DN.k); return; }
-  if(Math.abs(DN.k-DN.want)<.0005) return; DN.k+=Math.sign(DN.want-DN.k)*Math.min(Math.abs(DN.want-DN.k),dt/5); applyDN(DN.k); }
+function stepDN(dt){ SKY.position.copy(camera.position); DN.want=dnTarget(); stepWX(dt); if(DN.k===null){ DN.k=DN.want; applyDN(DN.k); return; }
+  let wch=false; if(Math.abs(WX.curDim-WX.dim)>.002){ WX.curDim+=Math.sign(WX.dim-WX.curDim)*Math.min(Math.abs(WX.dim-WX.curDim),dt/4); wch=true; }
+  if(Math.abs(DN.k-DN.want)<.0005){ if(wch) applyDN(DN.k); return; } DN.k+=Math.sign(DN.want-DN.k)*Math.min(Math.abs(DN.want-DN.k),dt/5); applyDN(DN.k); }
+
+// ───────── 날씨: 전주 효자동 실제 날씨를 따라 비·눈이 와요 ─────────
+// 운영자 쪽에서 매시간 받아 둔 날씨(notice/weather: code·temp·at)를 모두가 함께 봐요
+const WX={kind:'clear',amt:0,cur:0,dim:0,curDim:0,temp:null,code:null,at:0,last:null,force:null};
+function wxFromCode(c){ // 세계기상기구(WMO) 날씨 코드 → [종류, 세기, 흐림]
+  if(c==null||!Number.isFinite(c)) return ['clear',0,0];
+  if(c>=95) return ['rain',1,.8];
+  if((c>=71&&c<=77)||c===85||c===86) return ['snow',(c===75||c===86)?1:c===73?.7:.45,.45];
+  if((c>=51&&c<=67)||(c>=80&&c<=82)) return ['rain',(c===65||c===67||c===82)?1:(c===63||c===55||c===81||c===57)?.65:.38,.55];
+  if(c===45||c===48) return ['fog',0,.5];
+  if(c===3) return ['cloud',0,.35]; if(c===2) return ['cloud',0,.15];
+  return ['clear',0,0]; }
+const WX_TXT={clear:['☀️','맑음'],cloud:['☁️','흐림'],fog:['🌫️','안개'],rain:['☔','비'],snow:['❄️','눈']};
+function setWeather(d){ WX.last=d||null; let c=null, temp=null, fresh=false;
+  if(d&&typeof d==='object'){ c=Number(d.code); temp=Number(d.temp); fresh=Number.isFinite(+d.at)&&Date.now()-d.at<(d.src==='manual'?3:9)*3600e3; }
+  if(WX.force){ c=WX.force==='rain'?63:73; fresh=true; }
+  const [kind,amt,dim]=fresh?wxFromCode(c):['clear',0,0];
+  WX.kind=kind; WX.amt=amt; WX.dim=dim; WX.code=fresh?c:null; WX.temp=fresh&&Number.isFinite(temp)?temp:null;
+  const chip=$('#wxChip'); if(!fresh){ chip.hidden=true; return; } const [e,t]=WX_TXT[kind]; chip.hidden=false;
+  chip.textContent=`${e} 효자동 ${t}${WX.temp!==null?` · ${Math.round(WX.temp)}°C`:''}${WX.force?' (미리보기)':''}`; }
+setInterval(()=>setWeather(WX.last),60000);
+// 빗줄기 · 눈송이 (카메라 둘레 상자 안에서 떨어지고, 벗어나면 반대편으로)
+const WX_R=32, WX_H=26;
+const rainN=2600, rainPos=new Float32Array(rainN*6), rainSeed=new Float32Array(rainN*3);
+for(let i=0;i<rainN;i++){ rainSeed[i*3]=(Math.random()*2-1)*WX_R; rainSeed[i*3+1]=Math.random()*WX_H; rainSeed[i*3+2]=(Math.random()*2-1)*WX_R; }
+const rainGeo=new THREE.BufferGeometry(); rainGeo.setAttribute('position',new THREE.BufferAttribute(rainPos,3));
+const rainObj=new THREE.LineSegments(rainGeo,new THREE.LineBasicMaterial({color:0xb8c6dc,transparent:true,opacity:.55,depthWrite:false,fog:false}));
+rainObj.frustumCulled=false; rainObj.visible=false; scene.add(rainObj);
+const snowN=3600, snowPos=new Float32Array(snowN*3), snowSeed=new Float32Array(snowN*4);
+for(let i=0;i<snowN;i++){ snowSeed[i*4]=(Math.random()*2-1)*WX_R; snowSeed[i*4+1]=Math.random()*WX_H; snowSeed[i*4+2]=(Math.random()*2-1)*WX_R; snowSeed[i*4+3]=Math.random()*6.28; }
+const snowGeo=new THREE.BufferGeometry(); snowGeo.setAttribute('position',new THREE.BufferAttribute(snowPos,3));
+const snowTex=canvasTex(32,32,(g,w,hh)=>{ const gr=g.createRadialGradient(16,16,0,16,16,16); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(.5,'rgba(255,255,255,.8)'); gr.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=gr; g.fillRect(0,0,w,hh); });
+const snowObj=new THREE.Points(snowGeo,new THREE.PointsMaterial({size:.22,map:snowTex,transparent:true,depthWrite:false,color:0xffffff,opacity:.95,fog:false}));
+snowObj.frustumCulled=false; snowObj.visible=false; scene.add(snowObj);
+const wrapR=(v,c)=>{ let d=(v-c+WX_R)%(2*WX_R); if(d<0) d+=2*WX_R; return c-WX_R+d; };
+let wxSnd=null;
+function wxSound(on,vol){
+  if(on&&S.sound&&audio()){ if(!wxSnd){ const s=ac.createBufferSource(); s.buffer=noiseBuf(2); s.loop=true; const hp=ac.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=900; const lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=5200; const g=ac.createGain(); g.gain.value=0; s.connect(hp).connect(lp).connect(g).connect(ac.destination); s.start(); wxSnd={s,g}; }
+    wxSnd.g.gain.setTargetAtTime(vol,ac.currentTime,.4); }
+  else if(wxSnd){ const w=wxSnd; wxSnd=null; try{ w.g.gain.setTargetAtTime(0,ac.currentTime,.3); setTimeout(()=>{ try{ w.s.stop(); }catch(e){} },1500); }catch(e){} } }
+let wxT=0;
+function stepWX(dt){ wxT+=dt;
+  const want=WX.amt; WX.cur+=(want-WX.cur)*Math.min(1,dt*.6);
+  const cx=camera.position.x, cz=camera.position.z, base=Math.min(camera.position.y,controls.target.y)-8;
+  const isRain=WX.kind==='rain'&&WX.cur>.02, isSnow=WX.kind==='snow'&&WX.cur>.02;
+  rainObj.visible=isRain; snowObj.visible=isSnow;
+  wxSound(isRain,.05*WX.cur);
+  if(isRain){ const n=Math.floor(rainN*WX.cur); rainGeo.setDrawRange(0,n*2);
+    for(let i=0;i<n;i++){ let y=rainSeed[i*3+1]-dt*22; if(y<0) y+=WX_H; rainSeed[i*3+1]=y;
+      const x=wrapR(rainSeed[i*3],cx), z=wrapR(rainSeed[i*3+2],cz), Y=base+y, o=i*6;
+      rainPos[o]=x; rainPos[o+1]=Y; rainPos[o+2]=z; rainPos[o+3]=x+.1; rainPos[o+4]=Y+1.0; rainPos[o+5]=z+.04; }
+    rainGeo.attributes.position.needsUpdate=true; rainObj.material.opacity=DN.k>.6?.5:.7; }
+  if(isSnow){ const n=Math.floor(snowN*WX.cur); snowGeo.setDrawRange(0,n);
+    for(let i=0;i<n;i++){ let y=snowSeed[i*4+1]-dt*(1.1+(i%5)*.12); if(y<0) y+=WX_H; snowSeed[i*4+1]=y; const ph=snowSeed[i*4+3];
+      snowPos[i*3]=wrapR(snowSeed[i*4]+Math.sin(wxT*.7+ph)*.6,cx); snowPos[i*3+1]=base+y; snowPos[i*3+2]=wrapR(snowSeed[i*4+2]+Math.cos(wxT*.5+ph)*.5,cz); }
+    snowGeo.attributes.position.needsUpdate=true; }
+}
+
+// 깃허브판: 각자 브라우저가 Open-Meteo(기상청 KMA 모델)에서 효자동 날씨를 10분마다 받아요
+// notice.json에 "weather": "snow" | "rain" | "cloud" | "clear" 를 적으면 모두에게 그 날씨로 고정돼요 ("auto"나 빈칸이면 실제 날씨)
+const WX_MANUAL={clear:0,cloud:3,rain:63,snow:75}; let wxManual=null, wxAuto=null;
+function wxApply(){ setWeather(wxManual!==null?{code:wxManual,at:Date.now(),src:'manual'}:wxAuto); }
+async function fetchWX(){ const base='https://api.open-meteo.com/v1/forecast?latitude=35.8118&longitude=127.1047&current=temperature_2m,weather_code&timezone=Asia%2FSeoul';
+  for(const u of [base+'&models=kma_seamless',base]){ try{ const r=await fetch(u,{cache:'no-store'}); if(!r.ok) continue; const d=await r.json(); const c=d&&d.current;
+      if(c&&Number.isFinite(+c.weather_code)){ wxAuto={code:+c.weather_code,temp:+c.temperature_2m,at:Date.now(),src:'open-meteo'}; wxApply(); return; } }catch(e){} } }
+setInterval(fetchWX,10*60000); fetchWX();
 
 // ── 벤치: 테라스 좌우 날개, 광장 쪽 전망을 바라봄 ──
 const seatMeshes=[];
@@ -2455,6 +2527,7 @@ $('#chatOnBox').onchange=async()=>{ const on=$('#chatOnBox').checked; try{ await
 async function pollNotice(){ try{ const r=await fetch('notice.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) return; const d=await r.json(); if(!d||typeof d!=='object') return;
   const text=typeof d.text==='string'?d.text.replace(/[\u0000-\u0008\u000b-\u001f]/g,'').trim().slice(0,120):''; showNotice(text?{text,reload:!!d.reload,at:text}:null);
   if(typeof d.chat==='boolean'&&d.chat!==S.chatOn){ S.chatOn=d.chat; syncChatUI(); }
+  { const w=typeof d.weather==='string'?d.weather.trim().toLowerCase():''; const m=w in WX_MANUAL?WX_MANUAL[w]:null; if(m!==wxManual||m!==null){ wxManual=m; wxApply(); } }
   if(d.closed===true) closeSite(text); else if(siteClosed&&d.closed===false) location.reload(); }catch(e){} }
 // 쉼터 닫기: notice.json의 closed가 true면 접속 중인 화면까지 모두 막고 연결을 끊어요
 let siteClosed=false;
