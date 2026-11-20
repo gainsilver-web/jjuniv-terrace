@@ -1300,7 +1300,7 @@ const jjLb=(()=>{ const el=document.createElement('div'); el.className='lbl';
   tag.append(i,n); tag.onclick=()=>goHug(); el.append(say,tag); labelsEl.appendChild(el); return {el,say}; })();
 // ───────── 제이제이 산책: 모두의 화면에서 같은 시계로 같은 길을 걸어요 ─────────
 const JJ_SPD=3.4; // 내 캐릭터(4)와 비슷하게, 살짝 느긋하게
-const JJ_WP=[[-12.4,.9],[-21,1.2],[-32,.2],[-18,-1.6],[-4,2.6],[6,3.2],[13,-1.8],[24,1.2],[33,.4],[24,-1.8],[13.5,-1.8],[8,2],[-4,.4]];
+const JJ_WP=[[-12.4,.9],[-21,1.2],[-32,.2],[-18,-1.6],[-4,2.6],[6,3.2],[9.9,1.6],[10.7,-1.5],[13.5,-2.3],[24,1.2],[33,.4],[24,-1.8],[13.5,-1.8],[10.6,-1.4],[9.9,1.4],[-4,.4]];
 const JJ_ROUTE=(()=>{ const legs=[]; let T=0;
   for(let i=0;i<JJ_WP.length;i++){ const a=JJ_WP[i], b=JJ_WP[(i+1)%JJ_WP.length], wait=2.5+((i*7)%5)*.6; // 도착하면 잠깐 쉬며 손 흔들기
     legs.push({t0:T,t1:T+wait,a,b:a,wait:true}); T+=wait;
@@ -1756,43 +1756,50 @@ const LIONS=[[-10.35,14.95],[10.35,14.95]];
 // ───────── 스트레스 펀치기계 (제이제이 맞은편) ─────────
 const PUNCH={x:12.4,z:.9,ry:-.45};
 const PF=[Math.sin(PUNCH.ry),Math.cos(PUNCH.ry)];
-const pm=(()=>{ // 제이제이 런 오락기 (누르면 게임이 화면 가득 열려요)
+const pm=(()=>{ // AI 추월차선 카트 (포스터 속 파란 차) · 누르면 제이제이 런이 열려요
   const g=new THREE.Group(); g.position.set(PUNCH.x,0,PUNCH.z); g.rotation.y=PUNCH.ry; scene.add(g);
-  const blue=new THREE.MeshPhysicalMaterial({color:0x2a4fc4,roughness:.4,clearcoat:.6,emissive:0x0a1440,emissiveIntensity:.3}), ylw=std(0xffcf2e,{roughness:.4}), dark=std(0x14162a,{roughness:.5}), chrome=std(0xc9ced6,{metalness:.8,roughness:.25});
-  const add=(geo,mat,x,y,z)=>{ const o=mesh(geo,mat,x,y,z); o.userData.punch=true; g.add(o); return o; };
-  add(new THREE.BoxGeometry(1.0,.08,.92),dark,0,.04,0);
-  add(new THREE.BoxGeometry(.9,1.05,.74),blue,0,.6,-.05);
-  add(new THREE.BoxGeometry(.9,1.12,.5),blue,0,1.66,-.17);
-  for(const s of [-1,1]){ add(new THREE.BoxGeometry(.04,2.25,.8),ylw,s*.47,1.12,-.06); add(new THREE.BoxGeometry(.045,.9,.06),std(0xff6f59,{roughness:.5}),s*.475,.75,.32); }
-  // 조작판: 조이스틱 + 버튼 두 개
-  const cp=new THREE.Group(); cp.position.set(0,1.14,.2); cp.rotation.x=.32; g.add(cp);
-  const cpb=mesh(new THREE.BoxGeometry(.88,.07,.36),dark,0,0,0); cpb.userData.punch=true; cp.add(cpb);
-  const stick=mesh(new THREE.CylinderGeometry(.016,.016,.14,8),chrome,-.2,.09,0); cp.add(stick);
-  const ball=mesh(new THREE.SphereGeometry(.045,14,10),std(0xff3b30,{roughness:.3}),-.2,.17,0); cp.add(ball);
-  [[.06,0xffcf2e],[.2,0x2ec4b6]].forEach(([x,c])=>{ const b=mesh(new THREE.CylinderGeometry(.04,.04,.04,16),std(c,{roughness:.3,emissive:c,emissiveIntensity:.25}),x,.05,0); cp.add(b); });
-  // 화면: 노을 하늘 + 달리는 길 + 깜빡이는 시작 글자
-  const cv=document.createElement('canvas'); cv.width=256; cv.height=192; const ctx=cv.getContext('2d'); const tex=new THREE.CanvasTexture(cv); tex.encoding=THREE.sRGBEncoding;
-  let blink=false;
-  const draw=()=>{ const gr=ctx.createLinearGradient(0,0,0,192); gr.addColorStop(0,'#272a6e'); gr.addColorStop(.62,'#ff9a6c'); gr.addColorStop(.62,'#3b3566'); gr.addColorStop(1,'#1a1740'); ctx.fillStyle=gr; ctx.fillRect(0,0,256,192);
-    ctx.strokeStyle='rgba(255,210,63,.75)'; ctx.lineWidth=2; for(const k of [-1,0,1]){ ctx.beginPath(); ctx.moveTo(128+k*14,119); ctx.lineTo(128+k*120,192); ctx.stroke(); }
-    ctx.fillStyle='#ffd23f'; for(let k=0;k<5;k++){ ctx.beginPath(); ctx.arc(128,132+k*12,3+k,0,6.3); ctx.fill(); }
-    ctx.fillStyle='#fff5e4'; ctx.beginPath(); ctx.ellipse(128,150,13,15,0,0,6.3); ctx.fill(); ctx.fillStyle='#3f6df2'; ctx.fillRect(116,143,24,6);
-    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#ff6f59'; ctx.font='bold 38px "Black Han Sans","Jua",sans-serif'; ctx.fillText('제이제이 런',128,48);
-    if(blink){ ctx.fillStyle='#fff5e4'; ctx.font='bold 17px sans-serif'; ctx.fillText('▶ 눌러서 시작',128,92); } tex.needsUpdate=true; };
-  draw(); setInterval(()=>{ blink=!blink; draw(); },650);
-  add(new THREE.BoxGeometry(.8,.62,.04),dark,0,1.66,.085);
-  const scr=add(new THREE.PlaneGeometry(.72,.54),new THREE.MeshBasicMaterial({map:tex}),0,1.66,.108);
-  // 간판
-  const sign=canvasTex(512,128,(c,w,hh)=>{ c.fillStyle='#ffcf2e'; c.fillRect(0,0,w,hh); c.fillStyle='#2a4fc4'; c.font='bold 64px "Black Han Sans",sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText('제이제이 런',w/2,hh/2+4); });
-  add(new THREE.BoxGeometry(.94,.28,.22),[ylw,ylw,ylw,ylw,new THREE.MeshBasicMaterial({map:sign}),ylw],0,2.38,-.1);
-  const glow=new THREE.PointLight(0x7fa6ff,.55,4,2); glow.position.set(0,1.8,.9); g.add(glow);
-  const hit=new THREE.Mesh(new THREE.BoxGeometry(1.2,2.6,1.4),new THREE.MeshBasicMaterial({visible:false})); hit.position.set(0,1.3,.1); hit.userData.punch=true; g.add(hit);
+  const paint=new THREE.MeshPhysicalMaterial({color:0xffffff,vertexColors:true,metalness:.35,roughness:.3,clearcoat:1,clearcoatRoughness:.06,emissive:0x061a5a,emissiveIntensity:.25,envMapIntensity:.6});
+  const glass=new THREE.MeshPhysicalMaterial({color:0x0b1220,metalness:.2,roughness:.05,clearcoat:1});
+  const tireM=std(0x141519,{roughness:.7}), rimM=std(0xe8ecf2,{metalness:.6,roughness:.25}), ylw=new THREE.MeshPhysicalMaterial({color:0xffc400,roughness:.35,emissive:0x3a2600,emissiveIntensity:.4});
+  const tag=o=>{ o.userData.punch=true; o.castShadow=true; o.receiveShadow=true; return o; };
+  // 쐐기 모양 옆선: 낮은 코 → 큰 유리 지붕 → 짧은 꼬리 (+z가 앞)
+  const lerp=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t)), sstep=t=>{ t=Math.max(0,Math.min(1,t)); return t*t*(3-2*t); };
+  const P=[[1.32,.4],[1.18,.5],[.75,.6],[.38,.7],[.0,.98],[-.42,1.05],[-.82,.95],[-1.12,.78],[-1.32,.66]];
+  const topY=z=>{ if(z>=P[0][0]) return P[0][1]; for(let k=0;k<P.length-1;k++){ const [z0,y0]=P[k],[z1,y1]=P[k+1]; if(z<=z0&&z>=z1) return lerp(y0,y1,sstep((z0-z)/(z0-z1))); } return P[P.length-1][1]; };
+  const halfW=y=>y<.6?.74:lerp(.74,.5,(y-.6)/.45), halfL=(x,y)=>1.32-.28*Math.pow(Math.abs(x)/.74,2.4);
+  const R=.13, WZ=[.82,-.86];
+  const wheelCut=(y,z)=>{ let d=1; for(const wz of WZ) d=Math.min(d,Math.hypot(y-.27,z-wz)-.33); return d; };
+  const bodyF=(x,y,z)=>{ const qx=Math.abs(x)-halfW(y)+R, qy=Math.max(.13-y,y-topY(z))+R, qz=Math.abs(z)-halfL(x,y)+R;
+    let d=Math.hypot(Math.max(qx,0),Math.max(qy,0),Math.max(qz,0))+Math.min(Math.max(qx,qy,qz),0)-R; return Math.max(d,-wheelCut(y,z)); };
+  const bg=surfaceNet(bodyF,[-.85,.05,-1.45],[.85,1.15,1.45],.022);
+  { // 파란 차체 + 위쪽에 흰 줄무늬 두 줄
+    const pos=bg.attributes.position, nor=bg.attributes.normal, col=new Float32Array(pos.count*3), B=new THREE.Color(0x0a3cc8), W=new THREE.Color(0xf4f6fb);
+    for(let k=0;k<pos.count;k++){ const x=Math.abs(pos.getX(k)), up=nor.getY(k)>.25, c=up&&x>.09&&x<.25?W:B; col[k*3]=c.r; col[k*3+1]=c.g; col[k*3+2]=c.b; }
+    bg.setAttribute('color',new THREE.BufferAttribute(col,3)); }
+  g.add(tag(new THREE.Mesh(bg,paint)));
+  // 크고 짙은 유리 지붕
+  const winF=(x,y,z)=>Math.max(bodyF(x,y,z)-.03,.66-y,z-.4,-.92-z);
+  g.add(tag(new THREE.Mesh(surfaceNet(winF,[-.85,.6,-1.0],[.85,1.15,.5],.02),glass)));
+  // 바퀴
+  const tireG=new THREE.CylinderGeometry(.27,.27,.2,28), rimG=new THREE.CylinderGeometry(.16,.16,.21,10);
+  for(const z of WZ) for(const s of [-1,1]){ const t=mesh(tireG,tireM,s*.66,.27,z); t.rotation.z=Math.PI/2; g.add(tag(t)); const r=mesh(rimG,rimM,s*.66,.27,z); r.rotation.z=Math.PI/2; g.add(r); }
+  // 보닛 위 노란 별 · 헤드램프 · 테일램프
+  { const sh=new THREE.Shape(); for(let k=0;k<10;k++){ const r=k%2?.07:.16, a=Math.PI/2+k*Math.PI/5; const x=Math.cos(a)*r,y=Math.sin(a)*r; k?sh.lineTo(x,y):sh.moveTo(x,y);} sh.closePath();
+    const st=tag(new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:.02,bevelEnabled:true,bevelSize:.012,bevelThickness:.012,bevelSegments:2}),ylw));
+    const z0=.95, slope=Math.atan2(topY(z0-.1)-topY(z0+.1),.2); st.position.set(-.3,topY(z0)+.012,z0); st.rotation.x=-Math.PI/2+slope; g.add(st); }
+  const headM=new THREE.MeshBasicMaterial({color:0xeaf4ff}), tailM=new THREE.MeshBasicMaterial({color:0xe0262c});
+  for(const s of [-1,1]){ const hl=mesh(new THREE.BoxGeometry(.26,.05,.05),headM,s*.42,.42,1.25,false); hl.rotation.y=s*.5; g.add(hl);
+    const tl=mesh(new THREE.BoxGeometry(.28,.07,.04),tailM,s*.44,.62,-1.28,false); tl.rotation.y=-s*.45; g.add(tl); }
+  // 작은 리어 스포일러
+  { const wM=std(0x0a3cc8,{roughness:.35}); const wing=mesh(new THREE.BoxGeometry(1.1,.04,.2),wM,0,.98,-1.14); g.add(tag(wing)); for(const s of [-1,1]) g.add(tag(mesh(new THREE.BoxGeometry(.04,.22,.08),wM,s*.38,.86,-1.14))); }
+  const glow=new THREE.PointLight(0x7fa6ff,.5,4,2); glow.position.set(0,1.6,0); g.add(glow);
+  const hit=new THREE.Mesh(new THREE.BoxGeometry(1.6,1.3,2.8),new THREE.MeshBasicMaterial({visible:false})); hit.position.set(0,.6,0); hit.userData.punch=true; g.add(hit);
   const arm=new THREE.Group(); g.add(arm);
-  return {g,arm,draw:()=>{},drawBest:()=>{},hit,hitT:-9,show:0,shown:0,best:0,who:'',scr};
+  return {g,arm,draw:()=>{},drawBest:()=>{},hit,hitT:-9,show:0,shown:0,best:0,who:''};
 })();
 const pmLb=(()=>{ const el=document.createElement('div'); el.className='lbl'; const tag=document.createElement('button'); tag.type='button'; tag.className='tag jjtag';
-  const i=document.createElement('i'); i.textContent='🕹️'; i.style.background='#ffcf2e'; const n=document.createElement('span'); n.textContent='제이제이 런'; tag.append(i,n); tag.onclick=()=>goPunch(); el.append(tag); labelsEl.appendChild(el); return {el}; })();
-function punchSpot(){ return [PUNCH.x+PF[0]*1.05, PUNCH.z+PF[1]*1.05]; }
+  const i=document.createElement('i'); i.textContent='🏎️'; i.style.background='#9fc2ff'; const n=document.createElement('span'); n.textContent='추월차선 카트 · 제이제이 런'; tag.append(i,n); tag.onclick=()=>goPunch(); el.append(tag); labelsEl.appendChild(el); return {el}; })();
+function punchSpot(){ return [PUNCH.x+Math.cos(PUNCH.ry)*1.3, PUNCH.z-Math.sin(PUNCH.ry)*1.3]; }
 const PR=[Math.cos(PUNCH.ry),-Math.sin(PUNCH.ry)];
 function qSpot(i){ const [sx,sz]=punchSpot(); const a=Math.min(i,4)*.9, b=Math.max(0,i-4)*.9; return nearestWalk(sx+PF[0]*a-b, sz+PF[1]*a)||[sx,sz]; }
 S.pq=0; S.tries=0; S.myBest=0; S.qIdx=-1; S.punchTop={score:0,nick:''};
@@ -1801,11 +1808,11 @@ function goPunch(){ if(!S.entered) return; closePops(); if(S.seat!==null) standU
   S.path=planPath(sx,sz); [S.tx,S.tz]=S.path.shift(); S.goSeat=null; S.goHug=false; S.goStall=false; S.goOffer=false; S.goHae=false; S.goPunch=true; }
 // 제이제이 런: 화면 가득 게임 창을 띄우고, 닫으면 테라스로 돌아와요 (게임 중엔 테라스 그리기를 쉬어요)
 const JJRUN={open:false,el:null,snd:false};
-function openRun(){ if(JJRUN.open) return; S.ry=PUNCH.ry+Math.PI; JJRUN.open=true; closePops();
+function openRun(){ if(JJRUN.open) return; S.ry=Math.atan2(PUNCH.x-S.x,PUNCH.z-S.z); JJRUN.open=true; closePops();
   const o=document.createElement('div'); o.id='runWrap'; o.setAttribute('role','dialog'); o.setAttribute('aria-label','제이제이 런 게임');
   o.style.cssText='position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;background:#1a1740';
   const bar=document.createElement('div'); bar.style.cssText='display:flex;align-items:center;gap:10px;padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px));padding-top:max(8px,env(safe-area-inset-top,0px));background:#14122f;color:#fff5e4;font:600 15px/1.2 sans-serif';
-  const tt=document.createElement('span'); tt.textContent='🕹️ 제이제이 런'; tt.style.flex='1';
+  const tt=document.createElement('span'); tt.textContent='🏎️ 제이제이 런'; tt.style.flex='1';
   const x=document.createElement('button'); x.type='button'; x.textContent='✕ 테라스로 돌아가기'; x.style.cssText='border:0;border-radius:999px;padding:8px 14px;background:#ffd23f;color:#1a1740;font:700 14px sans-serif;cursor:pointer'; x.onclick=closeRun;
   bar.append(tt,x);
   const f=document.createElement('iframe'); f.src='jjrun.html'; f.title='제이제이 런'; f.allow='autoplay; fullscreen'; f.style.cssText='flex:1;width:100%;border:0;display:block;background:#1a1740';
@@ -1813,7 +1820,7 @@ function openRun(){ if(JJRUN.open) return; S.ry=PUNCH.ry+Math.PI; JJRUN.open=tru
   o.append(bar,f); document.body.appendChild(o); JJRUN.el=o;
   JJRUN.snd=!!(ac&&ac.state==='running'); if(JJRUN.snd) ac.suspend().catch(()=>{});
   for(const k in keys) keys[k]=false; }
-function closeRun(){ if(!JJRUN.open) return; JJRUN.open=false; if(JJRUN.el){ JJRUN.el.remove(); JJRUN.el=null; } if(JJRUN.snd&&ac) ac.resume().catch(()=>{}); setStatus('테라스로 돌아왔어요. 또 달리고 싶으면 오락기를 눌러요 🕹️'); }
+function closeRun(){ if(!JJRUN.open) return; JJRUN.open=false; if(JJRUN.el){ JJRUN.el.remove(); JJRUN.el=null; } if(JJRUN.snd&&ac) ac.resume().catch(()=>{}); setStatus('테라스로 돌아왔어요. 또 달리고 싶으면 추월차선 카트를 눌러요 🏎️'); }
 function leaveQueue(msg){ if(!S.pq) return; S.pq=0; S.qIdx=-1; closePunch(); $('#punchSide').hidden=true; $('#qLine').hidden=true; pushPresence(true); if(msg) setStatus(msg); }
 function queueList(){ const L=[]; for(const [peer,o] of others) if(o.pr.pq>0) L.push({peer,pq:o.pr.pq,nick:o.pr.nick}); if(S.pq) L.push({peer:'~me',pq:S.pq,nick:S.nick});
   return L.sort((a,b)=>a.pq-b.pq||(a.peer<b.peer?-1:1)); }
@@ -1901,7 +1908,7 @@ const clampN=(v,a,b)=>Math.max(a,Math.min(b,v));
 // T: 앞·옆 테라스 / L: 현관 위 전망대 / St: 정면 계단 / SS: 옆 계단 / G: 광장·정원
 const RISE=4/24, RUN=.34, GARDEN={x:0,z:36};
 function zoneOf(x,z){ const ax=Math.abs(x), s=x<0?'L':'R';
-  if(Math.hypot(x-PUNCH.x,z-PUNCH.z)<.8) return null;
+  { const dx=x-PUNCH.x, dz=z-PUNCH.z, s=Math.sin(PUNCH.ry), c=Math.cos(PUNCH.ry); if(Math.abs(dx*c-dz*s)<.85&&Math.abs(dx*s+dz*c)<1.45) return null; }
   if(Math.abs(x-POCHA.x)<.6&&Math.abs(z-POCHA.z)<.6) return null;
   if(Math.abs(x-FRIDGE.x)<.55&&Math.abs(z-FRIDGE.z)<.6) return null;
   if(Math.abs(x-STALL.x)<.98&&Math.abs(z-STALL.z)<.55) return null;
@@ -2539,7 +2546,7 @@ $('#noticeReload').onclick=()=>{ try{ location.reload(); }catch(e){ setStatus('�
 $('#chatOnBox').onchange=async()=>{ const on=$('#chatOnBox').checked; try{ await db.doc('notice/chat').set({on,at:Date.now()}); $('#noticeMsg').textContent=on?'자유 대화를 켰어요 💬':'자유 대화를 껐어요. 모두 정해진 문장만 쓸 수 있어요.'; }catch(e){ $('#chatOnBox').checked=!on; $('#noticeMsg').textContent='바꾸지 못했어요. 잠시 뒤 다시 해 주세요.'; } };
 // ── 새 버전 자동 적용: notice.json의 version이 이 파일의 APP_VER와 다르면 새로 불러와요 ──
 // 다른 창을 보고 있거나 1분 넘게 손을 안 댔으면 바로 새로고침, 아니면 위에 새로고침 버튼을 띄워요
-const APP_VER='2026-11-20c'; let lastInput=Date.now(), updWanted=null;
+const APP_VER='2026-11-20d'; let lastInput=Date.now(), updWanted=null;
 ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,()=>{ lastInput=Date.now(); },{passive:true,capture:true}));
 function goUpdate(v){ let tried=null; try{ tried=sessionStorage.getItem('ter.upd'); sessionStorage.setItem('ter.upd',v); }catch(e){} if(tried===v) return false;
   location.replace(location.pathname+'?v='+encodeURIComponent(v)+location.hash); return true; }
