@@ -1819,6 +1819,27 @@ function openRun(){ if(JJRUN.open) return; S.ry=Math.atan2(PUNCH.x-S.x,PUNCH.z-S
   JJRUN.snd=!!(ac&&ac.state==='running'); if(JJRUN.snd) ac.suspend().catch(()=>{});
   for(const k in keys) keys[k]=false; }
 function closeRun(){ if(!JJRUN.open) return; JJRUN.open=false; if(JJRUN.el){ JJRUN.el.remove(); JJRUN.el=null; } if(JJRUN.snd&&ac) ac.resume().catch(()=>{}); setStatus('테라스로 돌아왔어요. 또 달리고 싶으면 추월차선 카트를 눌러요 🏎️'); }
+// ── 제이제이 런 랭킹: 게임 창이 부서·학과 점수를 올리고 TOP 10을 받아 가요 (공용 저장소 guests/{나}.jjrun) ──
+const JJ_CTRL=new RegExp('[\\u0000-\\u001f\\u200b-\\u200f\\u2028-\\u202e\\u2060-\\u206f\\ufeff]','g');
+const cleanDept=s=>String(s||'').slice(0,60).replace(JJ_CTRL,'').replace(/\s+/g,' ').trim().slice(0,12);
+function deptProblem(n){ if(n.length<2) return '부서·학과 이름은 2자 이상으로 적어 주세요.'; if(/https?:|www\.|\.com|\.kr/i.test(n)) return '주소는 쓸 수 없어요.';
+  const flat=n.replace(/[\s._\-~!@#$%^&*()0-9]/g,'').toLowerCase(); if(BADWORDS.some(w=>flat.includes(w))) return '쓸 수 없는 말이 들어 있어요. 부서·학과 이름을 적어 주세요.'; return ''; }
+function jjRankList(){ const m=new Map(), gs=S.guests||[]; const all=gs.map(g=>g.id===S.uid&&S.myDoc?S.myDoc:g.data); if(S.myDoc&&!gs.some(g=>g.id===S.uid)) all.push(S.myDoc);
+  for(const d of all){ const r=d&&d.jjrun; if(!r||typeof r!=='object') continue; const name=cleanDept(r.dept), sc=Math.round(num(r.best)); if(!name||!(sc>0)||deptProblem(name)) continue;
+    const o=m.get(name); if(!o||sc>o.score) m.set(name,{name,score:sc}); }
+  return [...m.values()].sort((a,b)=>b.score-a.score); }
+addEventListener('message',async e=>{ const d=e.data; if(!d||typeof d!=='object'||d.jjrun!=='req'||!JJRUN.el) return;
+  const f=JJRUN.el.querySelector('iframe'); if(!f||e.source!==f.contentWindow) return;
+  const reply=(ok,data,err)=>{ try{ e.source.postMessage({jjrun:'reply',id:String(d.id||''),ok,data,err},'*'); }catch(x){} };
+  if(!db||!S.uid) return reply(false,null,'none');
+  if(d.op==='ping') return reply(true,{});
+  if(d.op==='list') return reply(true,jjRankList().slice(0,50));
+  if(d.op==='submit'){ const dept=cleanDept(d.dept), sc=Math.max(0,Math.min(1e7,Math.round(num(d.score)))), pb=deptProblem(dept); if(pb) return reply(false,null,'bad:'+pb);
+    const prev=(S.myDoc&&S.myDoc.jjrun)||{}, best=cleanDept(prev.dept)===dept?Math.max(num(prev.best),sc):sc;
+    const doc=Object.assign({},S.myDoc||{rooms:{}},{jjrun:{dept,best,char:String(d.char||'').slice(0,8),t:Date.now()}});
+    try{ await db.doc('guests/'+S.uid).set(doc); S.myDoc=doc; }catch(x){ return reply(false,null,'save'); }
+    const L=jjRankList(), i=L.findIndex(v=>v.name===dept); return reply(true,{rank:i>=0?i+1:0,score:i>=0?L[i].score:best}); }
+  reply(false,null,'op'); });
 function leaveQueue(msg){ if(!S.pq) return; S.pq=0; S.qIdx=-1; closePunch(); $('#punchSide').hidden=true; $('#qLine').hidden=true; pushPresence(true); if(msg) setStatus(msg); }
 function queueList(){ const L=[]; for(const [peer,o] of others) if(o.pr.pq>0) L.push({peer,pq:o.pr.pq,nick:o.pr.nick}); if(S.pq) L.push({peer:'~me',pq:S.pq,nick:S.nick});
   return L.sort((a,b)=>a.pq-b.pq||(a.peer<b.peer?-1:1)); }
@@ -2544,7 +2565,7 @@ $('#noticeReload').onclick=()=>{ try{ location.reload(); }catch(e){ setStatus('�
 $('#chatOnBox').onchange=async()=>{ const on=$('#chatOnBox').checked; try{ await db.doc('notice/chat').set({on,at:Date.now()}); $('#noticeMsg').textContent=on?'자유 대화를 켰어요 💬':'자유 대화를 껐어요. 모두 정해진 문장만 쓸 수 있어요.'; }catch(e){ $('#chatOnBox').checked=!on; $('#noticeMsg').textContent='바꾸지 못했어요. 잠시 뒤 다시 해 주세요.'; } };
 // ── 새 버전 자동 적용: notice.json의 version이 이 파일의 APP_VER와 다르면 새로 불러와요 ──
 // 다른 창을 보고 있거나 1분 넘게 손을 안 댔으면 바로 새로고침, 아니면 위에 새로고침 버튼을 띄워요
-const APP_VER='2026-11-20g'; let lastInput=Date.now(), updWanted=null;
+const APP_VER='2026-11-20h'; let lastInput=Date.now(), updWanted=null;
 ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,()=>{ lastInput=Date.now(); },{passive:true,capture:true}));
 function goUpdate(v){ let tried=null; try{ tried=sessionStorage.getItem('ter.upd'); sessionStorage.setItem('ter.upd',v); }catch(e){} if(tried===v) return false;
   location.replace(location.pathname+'?v='+encodeURIComponent(v)+location.hash); return true; }

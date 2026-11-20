@@ -101,7 +101,7 @@ h2{font-size:2rem}
       <p class="lede">장애물을 피하고 코인을 모으면서 최대한 멀리 달려요. 누구랑 뛸래요?</p>
       <div class="chars" id="chars"></div>
       <p id="desc"></p>
-      <label class="nick" for="nick" id="nickRow">닉네임 <input id="nick" type="text" maxlength="10" placeholder="랭킹에 올릴 이름 (10자까지)" autocomplete="off"></label>
+      <label class="nick" for="nick" id="nickRow">부서·학과 <input id="nick" type="text" maxlength="12" placeholder="예: 교무처, 컴퓨터공학과" autocomplete="off"></label>
       <div class="row">
         <button class="btn" id="btnStart" type="button">달리기 시작</button>
         <button class="btn ghost" id="btnRank" type="button">랭킹 보기</button>
@@ -142,7 +142,7 @@ h2{font-size:2rem}
 
   <div class="wrap" id="rank" hidden>
     <div class="sheet">
-      <h2>랭킹 TOP 10</h2>
+      <h2>부서·학과 랭킹 TOP 10</h2>
       <ol class="rank" id="rankList"></ol>
       <p class="lede" id="rankMsg"></p>
       <button class="btn ghost" id="btnRankClose" type="button">닫기</button>
@@ -606,43 +606,56 @@ function showOver() {
   submitScore();
 }
 
-/* ---------- 랭킹 ---------- */
+/* ---------- 랭킹: 부서·학과별 최고 점수 TOP 10 ---------- */
+// 테라스 안에서 열리면 테라스의 공용 저장소에, 혼자 열리면 JJ_RANK_URL(Firebase)에 올려요
 const RANK_URL = String(window.JJ_RANK_URL || '').trim().replace(/\/+$/, '');
-let uid = '';
-try { uid = localStorage.getItem('jjrun.uid') || ''; $('nick').value = localStorage.getItem('jjrun.nick') || ''; } catch (e) {}
+let uid = '', bridge = false;
+try { uid = localStorage.getItem('jjrun.uid') || ''; $('nick').value = localStorage.getItem('jjrun.dept') || ''; } catch (e) {}
 if (!/^p[a-z0-9]{8,30}$/.test(uid)) { uid = 'p' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36); try { localStorage.setItem('jjrun.uid', uid); } catch (e) {} }
-const nick = () => $('nick').value.trim().slice(0, 10);
-$('nick').addEventListener('input', () => { try { localStorage.setItem('jjrun.nick', nick()); } catch (e) {} });
-if (!RANK_URL) { $('nickRow').hidden = true; $('btnRank').hidden = true; $('btnRank2').hidden = true; }
+const nick = () => $('nick').value.replace(new RegExp('[\\u0000-\\u001f\\u200b-\\u200f\\u2028-\\u202e\\u2060-\\u206f\\ufeff]', 'g'), '').replace(/\s+/g, ' ').trim().slice(0, 12);
+$('nick').addEventListener('input', () => { try { localStorage.setItem('jjrun.dept', nick()); } catch (e) {} });
+function askParent(msg, ms) { return new Promise((res, rej) => {
+  if (window.parent === window) { rej(new Error('alone')); return; }
+  const id = Math.random().toString(36).slice(2);
+  const on = e => { const d = e.data; if (e.source !== window.parent || !d || d.jjrun !== 'reply' || d.id !== id) return; clearTimeout(t); removeEventListener('message', on); d.ok ? res(d.data) : rej(new Error(d.err || 'fail')); };
+  const t = setTimeout(() => { removeEventListener('message', on); rej(new Error('timeout')); }, ms || 6000);
+  addEventListener('message', on); window.parent.postMessage(Object.assign({ jjrun: 'req', id }, msg), '*'); }); }
+function setRankUI(on) { $('nickRow').hidden = !on; $('btnRank').hidden = !on; $('btnRank2').hidden = !on; }
+setRankUI(!!RANK_URL);
+askParent({ op: 'ping' }, 2500).then(() => { bridge = true; setRankUI(true); }).catch(() => {});
+const topDepts = rows => { const m = new Map(); for (const v of rows) { const k = v.name; if (!k || !(v.score >= 0)) continue; const o = m.get(k); if (!o || v.score > o.score) m.set(k, { name: k, score: v.score, char: v.char }); }
+  return [...m.values()].sort((a, b) => b.score - a.score); };
 async function fetchRank() {
-  const r = await fetch(RANK_URL + '/scores.json?orderBy=%22score%22&limitToLast=50', { cache: 'no-store' });
+  if (bridge) return askParent({ op: 'list' });
+  const r = await fetch(RANK_URL + '/scores.json?orderBy=%22score%22&limitToLast=200', { cache: 'no-store' });
   if (!r.ok) throw new Error('rank ' + r.status);
   const o = (await r.json()) || {};
-  return Object.keys(o).map(k => ({ id: k, name: String(o[k].name || '').slice(0, 10), score: +o[k].score, char: o[k].char }))
-    .filter(v => v.score >= 0).sort((a, b) => b.score - a.score);
+  return topDepts(Object.keys(o).map(k => ({ name: String(o[k].name || '').slice(0, 12), score: +o[k].score, char: o[k].char })));
 }
 async function submitScore() {
-  const el = $('oRank'); if (!RANK_URL) { el.hidden = true; return; }
+  const el = $('oRank'); if (!RANK_URL && !bridge) { el.hidden = true; return; }
   el.hidden = false;
-  if (!nick()) { el.textContent = '닉네임을 적으면 랭킹에 올라가요. 캐릭터 바꾸기 화면에서 입력할 수 있어요.'; return; }
+  if (!nick()) { el.textContent = '부서·학과 이름을 적으면 랭킹에 올라가요. 캐릭터 바꾸기 화면에서 입력할 수 있어요.'; return; }
   el.textContent = '랭킹에 올리는 중…';
   try {
+    if (bridge) { const r = await askParent({ op: 'submit', dept: nick(), score: best, char: sel });
+      el.textContent = r.rank ? nick() + '은(는) 지금 ' + r.rank + '위예요! (부서 최고 ' + r.score.toLocaleString('ko-KR') + '점)' : '랭킹에 올렸어요.'; return; }
     if (best > 0) await fetch(RANK_URL + '/scores/' + uid + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: nick(), score: best, char: sel, t: Date.now() }) });
-    const list = await fetchRank(), i = list.findIndex(v => v.id === uid);
-    el.textContent = i >= 0 ? '지금 내 순위는 ' + (i + 1) + '위예요. (최고 ' + list[i].score.toLocaleString('ko-KR') + '점)' : '아직 50위 안에 못 들었어요. 한 판 더!';
-  } catch (e) { el.textContent = '랭킹 서버에 연결하지 못했어요. 점수는 이 기기에만 저장됐어요.'; }
+    const list = await fetchRank(), i = list.findIndex(v => v.name === nick());
+    el.textContent = i >= 0 ? nick() + '은(는) 지금 ' + (i + 1) + '위예요! (부서 최고 ' + list[i].score.toLocaleString('ko-KR') + '점)' : '랭킹에 올렸어요.';
+  } catch (e) { el.textContent = (e && /^bad:/.test(e.message)) ? e.message.slice(4) : '랭킹에 올리지 못했어요. 점수는 이 기기에만 저장됐어요.'; }
 }
 async function openRank() {
   const ol = $('rankList'), msg = $('rankMsg'); ol.textContent = ''; msg.textContent = '불러오는 중…'; $('rank').hidden = false; $('btnRankClose').focus({ preventScroll: true });
   try {
-    const list = await fetchRank(); msg.textContent = list.length ? '' : '아직 기록이 없어요. 1등 자리가 비어 있어요!';
+    const list = await fetchRank(); msg.textContent = list.length ? '' : '아직 기록이 없어요. 우리 부서가 1등 할 기회!';
     list.slice(0, 10).forEach((v, i) => {
-      const li = document.createElement('li'), a = document.createElement('span'), b = document.createElement('span'), c = document.createElement('span'), d = document.createElement('small');
-      a.className = 'no'; a.textContent = i + 1; b.className = 'nm'; b.textContent = v.name || '이름없음'; d.textContent = CHARS[v.char] ? CHARS[v.char].name : '';
-      b.append(d); c.className = 'sc'; c.textContent = v.score.toLocaleString('ko-KR'); if (v.id === uid) li.className = 'me'; li.append(a, b, c); ol.append(li);
+      const li = document.createElement('li'), a = document.createElement('span'), b = document.createElement('span'), c = document.createElement('span');
+      a.className = 'no'; a.textContent = i + 1; b.className = 'nm'; b.textContent = v.name || '이름없음';
+      c.className = 'sc'; c.textContent = (+v.score).toLocaleString('ko-KR'); if (v.name === nick()) li.className = 'me'; li.append(a, b, c); ol.append(li);
     });
-    const mine = list.findIndex(v => v.id === uid); if (mine >= 10) msg.textContent = '내 순위: ' + (mine + 1) + '위';
+    const mine = list.findIndex(v => v.name === nick()); if (mine >= 10) msg.textContent = nick() + ' 순위: ' + (mine + 1) + '위';
   } catch (e) { msg.textContent = '랭킹을 불러오지 못했어요. 잠시 뒤에 다시 눌러 주세요.'; }
 }
 function closeRank() { $('rank').hidden = true; }
