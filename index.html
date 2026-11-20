@@ -2523,9 +2523,21 @@ function showNotice(d){ noticeCur=d; const box=$('#notice');
 $('#noticeClose').onclick=()=>{ if(noticeCur){ try{ localStorage.setItem('ter.noticeClosed',String(noticeCur.at)); }catch(e){} } $('#notice').hidden=true; };
 $('#noticeReload').onclick=()=>{ try{ location.reload(); }catch(e){ setStatus('브라우저에서 F5를 눌러 새로고침해 주세요.'); } };
 $('#chatOnBox').onchange=async()=>{ const on=$('#chatOnBox').checked; try{ await db.doc('notice/chat').set({on,at:Date.now()}); $('#noticeMsg').textContent=on?'자유 대화를 켰어요 💬':'자유 대화를 껐어요. 모두 정해진 문장만 쓸 수 있어요.'; }catch(e){ $('#chatOnBox').checked=!on; $('#noticeMsg').textContent='바꾸지 못했어요. 잠시 뒤 다시 해 주세요.'; } };
+// ── 새 버전 자동 적용: notice.json의 version이 이 파일의 APP_VER와 다르면 새로 불러와요 ──
+// 다른 창을 보고 있거나 1분 넘게 손을 안 댔으면 바로 새로고침, 아니면 위에 새로고침 버튼을 띄워요
+const APP_VER='2026-11-20b'; let lastInput=Date.now(), updWanted=null;
+['pointerdown','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,()=>{ lastInput=Date.now(); },{passive:true,capture:true}));
+function goUpdate(v){ let tried=null; try{ tried=sessionStorage.getItem('ter.upd'); sessionStorage.setItem('ter.upd',v); }catch(e){} if(tried===v) return false;
+  location.replace(location.pathname+'?v='+encodeURIComponent(v)+location.hash); return true; }
+function checkUpdate(v){ if(typeof v!=='string'||!v||v===APP_VER) return; updWanted=v;
+  const idle=document.hidden||Date.now()-lastInput>60000, ae=document.activeElement, busy=!!ae&&/^(INPUT|TEXTAREA)$/.test(ae.tagName)&&!!ae.value;
+  if(idle&&!busy&&goUpdate(v)) return;
+  showNotice({text:'새 기능이 추가됐어요! 새로고침하면 바로 적용돼요 ✨',reload:true,at:'ver:'+v}); }
+document.addEventListener('visibilitychange',()=>{ if(document.hidden&&updWanted) goUpdate(updWanted); });
 // 공지·자유 대화 스위치: 깃허브의 notice.json을 고치면 1~2분 안에 모두에게 반영돼요
 async function pollNotice(){ try{ const r=await fetch('notice.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) return; const d=await r.json(); if(!d||typeof d!=='object') return;
-  const text=typeof d.text==='string'?d.text.replace(/[\u0000-\u0008\u000b-\u001f]/g,'').trim().slice(0,120):''; showNotice(text?{text,reload:!!d.reload,at:text}:null);
+  const text=typeof d.text==='string'?d.text.replace(/[\u0000-\u0008\u000b-\u001f]/g,'').trim().slice(0,120):'';
+  if(typeof d.version==='string'&&d.version&&d.version!==APP_VER) checkUpdate(d.version); else showNotice(text?{text,reload:!!d.reload,at:text}:null);
   if(typeof d.chat==='boolean'&&d.chat!==S.chatOn){ S.chatOn=d.chat; syncChatUI(); }
   { const w=typeof d.weather==='string'?d.weather.trim().toLowerCase():''; const m=w in WX_MANUAL?WX_MANUAL[w]:null; if(m!==wxManual||m!==null){ wxManual=m; wxApply(); } }
   if(d.closed===true) closeSite(text); else if(siteClosed&&d.closed===false) location.reload(); }catch(e){} }

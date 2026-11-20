@@ -3,5 +3,6 @@
   "reload": false,
   "chat": true,
   "closed": false,
-  "weather": "auto"
+  "weather": "auto",
+  "version": "2026-11-20b"
 }
