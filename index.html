@@ -1300,7 +1300,7 @@ const jjLb=(()=>{ const el=document.createElement('div'); el.className='lbl';
   tag.append(i,n); tag.onclick=()=>goHug(); el.append(say,tag); labelsEl.appendChild(el); return {el,say}; })();
 // ───────── 제이제이 산책: 모두의 화면에서 같은 시계로 같은 길을 걸어요 ─────────
 const JJ_SPD=3.4; // 내 캐릭터(4)와 비슷하게, 살짝 느긋하게
-const JJ_WP=[[-12.4,.9],[-21,1.2],[-32,.2],[-18,-1.6],[-4,2.6],[6,3.2],[16.5,.6],[24,1.2],[33,.4],[24,-1.8],[16.5,.2],[10.4,1.2],[-4,.4]];
+const JJ_WP=[[-12.4,.9],[-21,1.2],[-32,.2],[-18,-1.6],[-4,2.6],[6,3.2],[16.5,.6],[24,1.2],[33,.4],[24,-1.8],[16.5,.6],[10.4,1.4],[-4,.4]];
 const JJ_ROUTE=(()=>{ const legs=[]; let T=0;
   for(let i=0;i<JJ_WP.length;i++){ const a=JJ_WP[i], b=JJ_WP[(i+1)%JJ_WP.length], wait=2.5+((i*7)%5)*.6; // 도착하면 잠깐 쉬며 손 흔들기
     legs.push({t0:T,t1:T+wait,a,b:a,wait:true}); T+=wait;
@@ -1754,10 +1754,10 @@ const LIONS=[[-10.35,14.95],[10.35,14.95]];
 }
 
 // ───────── 스트레스 펀치기계 (제이제이 맞은편) ─────────
-const PUNCH={x:12.4,z:-1.6,ry:Math.PI/2}; // 추월차선 카트: 건물과 나란히 주차
+const PUNCH={x:12.8,z:-1.6,ry:Math.PI/2}; // 추월차선 카트: 건물과 나란히 주차
 const PF=[Math.sin(PUNCH.ry),Math.cos(PUNCH.ry)];
 const pm=(()=>{ // AI 추월차선 카트 (포스터 속 파란 차) · 누르면 제이제이 런이 열려요
-  const g=new THREE.Group(); g.position.set(PUNCH.x,0,PUNCH.z); g.rotation.y=PUNCH.ry; g.scale.setScalar(1.4); scene.add(g);
+  const g=new THREE.Group(); g.position.set(PUNCH.x,0,PUNCH.z); g.rotation.y=PUNCH.ry; g.scale.setScalar(1.8); scene.add(g);
   const paint=new THREE.MeshPhysicalMaterial({color:0xffffff,vertexColors:true,metalness:.35,roughness:.3,clearcoat:1,clearcoatRoughness:.06,emissive:0x061a5a,emissiveIntensity:.25,envMapIntensity:.6});
   const glass=new THREE.MeshPhysicalMaterial({color:0x0b1220,metalness:.2,roughness:.05,clearcoat:1});
   const tireM=std(0x141519,{roughness:.7}), rimM=std(0xe8ecf2,{metalness:.6,roughness:.25}), ylw=new THREE.MeshPhysicalMaterial({color:0xffc400,roughness:.35,emissive:0x3a2600,emissiveIntensity:.4});
@@ -1906,7 +1906,7 @@ const clampN=(v,a,b)=>Math.max(a,Math.min(b,v));
 // T: 앞·옆 테라스 / L: 현관 위 전망대 / St: 정면 계단 / SS: 옆 계단 / G: 광장·정원
 const RISE=4/24, RUN=.34, GARDEN={x:0,z:36};
 function zoneOf(x,z){ const ax=Math.abs(x), s=x<0?'L':'R';
-  { const dx=x-PUNCH.x, dz=z-PUNCH.z, s=Math.sin(PUNCH.ry), c=Math.cos(PUNCH.ry); if(Math.abs(dx*c-dz*s)<1.2&&Math.abs(dx*s+dz*c)<2.05) return null; }
+  { const dx=x-PUNCH.x, dz=z-PUNCH.z, s=Math.sin(PUNCH.ry), c=Math.cos(PUNCH.ry); if(Math.abs(dx*c-dz*s)<1.55&&Math.abs(dx*s+dz*c)<2.65) return null; }
   if(Math.abs(x-POCHA.x)<.6&&Math.abs(z-POCHA.z)<.6) return null;
   if(Math.abs(x-FRIDGE.x)<.55&&Math.abs(z-FRIDGE.z)<.6) return null;
   if(Math.abs(x-STALL.x)<.98&&Math.abs(z-STALL.z)<.55) return null;
@@ -2544,7 +2544,7 @@ $('#noticeReload').onclick=()=>{ try{ location.reload(); }catch(e){ setStatus('�
 $('#chatOnBox').onchange=async()=>{ const on=$('#chatOnBox').checked; try{ await db.doc('notice/chat').set({on,at:Date.now()}); $('#noticeMsg').textContent=on?'자유 대화를 켰어요 💬':'자유 대화를 껐어요. 모두 정해진 문장만 쓸 수 있어요.'; }catch(e){ $('#chatOnBox').checked=!on; $('#noticeMsg').textContent='바꾸지 못했어요. 잠시 뒤 다시 해 주세요.'; } };
 // ── 새 버전 자동 적용: notice.json의 version이 이 파일의 APP_VER와 다르면 새로 불러와요 ──
 // 다른 창을 보고 있거나 1분 넘게 손을 안 댔으면 바로 새로고침, 아니면 위에 새로고침 버튼을 띄워요
-const APP_VER='2026-11-20f'; let lastInput=Date.now(), updWanted=null;
+const APP_VER='2026-11-20g'; let lastInput=Date.now(), updWanted=null;
 ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,()=>{ lastInput=Date.now(); },{passive:true,capture:true}));
 function goUpdate(v){ let tried=null; try{ tried=sessionStorage.getItem('ter.upd'); sessionStorage.setItem('ter.upd',v); }catch(e){} if(tried===v) return false;
   location.replace(location.pathname+'?v='+encodeURIComponent(v)+location.hash); return true; }
