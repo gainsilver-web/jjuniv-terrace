@@ -709,6 +709,7 @@ function showOver() {
 // 테라스 안에서 열리면 테라스의 공용 저장소에, 혼자 열리면 JJ_RANK_URL(Firebase)에 올려요
 const RANK_URL = String(window.JJ_RANK_URL || '').trim().replace(/\/+$/, '');
 const RANK_SEASON = 2; // 랭킹을 초기화할 때마다 1씩 올려요 (기기에 남은 예전 기록이 다시 올라가지 않게)
+const RANK_SINCE = 1795422821635; // 이 시각(시즌 시작) 이후에 올린 기록만 랭킹에 보여요
 let uid = '', bridge = false;
 try { uid = localStorage.getItem('jjrun.uid') || ''; $('nick').value = localStorage.getItem('jjrun.dept') || ''; } catch (e) {}
 if (!/^p[a-z0-9]{8,30}$/.test(uid)) { uid = 'p' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36); try { localStorage.setItem('jjrun.uid', uid); } catch (e) {} }
@@ -730,7 +731,7 @@ async function fetchRank() {
   const r = await fetch(RANK_URL + '/scores.json?orderBy=%22score%22&limitToLast=200', { cache: 'no-store' });
   if (!r.ok) throw new Error('rank ' + r.status);
   const o = (await r.json()) || {};
-  return topDepts(Object.keys(o).map(k => ({ name: String(o[k].name || '').slice(0, 12), score: +o[k].score, char: o[k].char })));
+  return topDepts(Object.keys(o).filter(k => +o[k].t >= RANK_SINCE).map(k => ({ name: String(o[k].name || '').slice(0, 12), score: +o[k].score, char: o[k].char })));
 }
 async function submitScore(cur) { // 이번 판 점수를 올려요 (랭킹을 만들기 전 기록은 빼고)
   cur = Math.max(0, Math.round(+cur || 0));
