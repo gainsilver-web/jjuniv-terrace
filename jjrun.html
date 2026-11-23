@@ -708,6 +708,7 @@ function showOver() {
 /* ---------- 랭킹: 부서·학과별 최고 점수 TOP 10 ---------- */
 // 테라스 안에서 열리면 테라스의 공용 저장소에, 혼자 열리면 JJ_RANK_URL(Firebase)에 올려요
 const RANK_URL = String(window.JJ_RANK_URL || '').trim().replace(/\/+$/, '');
+const RANK_SEASON = 2; // 랭킹을 초기화할 때마다 1씩 올려요 (기기에 남은 예전 기록이 다시 올라가지 않게)
 let uid = '', bridge = false;
 try { uid = localStorage.getItem('jjrun.uid') || ''; $('nick').value = localStorage.getItem('jjrun.dept') || ''; } catch (e) {}
 if (!/^p[a-z0-9]{8,30}$/.test(uid)) { uid = 'p' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36); try { localStorage.setItem('jjrun.uid', uid); } catch (e) {} }
@@ -740,8 +741,8 @@ async function submitScore(cur) { // 이번 판 점수를 올려요 (랭킹을 �
   try {
     if (bridge) { const r = await askParent({ op: 'submit', dept: nick(), score: cur, char: sel });
       el.textContent = r.rank ? nick() + '은(는) 지금 ' + r.rank + '위예요! (부서 최고 ' + r.score.toLocaleString('ko-KR') + '점)' : '랭킹에 올렸어요.'; return; }
-    let rb = 0; try { const o = JSON.parse(localStorage.getItem('jjrun.rbest') || '{}'); if (o.dept === nick()) rb = +o.score || 0; } catch (e) {}
-    rb = Math.max(rb, cur); try { localStorage.setItem('jjrun.rbest', JSON.stringify({ dept: nick(), score: rb })); } catch (e) {}
+    let rb = 0; try { const o = JSON.parse(localStorage.getItem('jjrun.rbest') || '{}'); if (o.dept === nick() && o.s === RANK_SEASON) rb = +o.score || 0; } catch (e) {}
+    rb = Math.max(rb, cur); try { localStorage.setItem('jjrun.rbest', JSON.stringify({ dept: nick(), score: rb, s: RANK_SEASON })); } catch (e) {}
     if (rb > 0) await fetch(RANK_URL + '/scores/' + uid + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: nick(), score: rb, char: sel, t: Date.now() }) });
     const list = await fetchRank(), i = list.findIndex(v => v.name === nick());
