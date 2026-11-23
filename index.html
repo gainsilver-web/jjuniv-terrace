@@ -270,13 +270,14 @@ a.passtag:hover{background:#ffe066}
 <div class="bar" role="toolbar" aria-label="행동">
   <button class="act main" id="aPlane" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21.5 3L2.5 10.5l7 2.5 2.5 7.5z"/><path d="M21.5 3L9.5 13"/></svg>고민 날리기</button>
   <button class="act" id="aHug" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="6" r="2.6"/><path d="M5 11c2.2 2.2 4.4 3 7 3s4.8-.8 7-3"/><path d="M8.5 21v-5.2M15.5 21v-5.2"/><path d="M12 12.6l-.9-.8a1.1 1.1 0 0 1 1.5-1.6l-.6.5.6-.5a1.1 1.1 0 0 1 1.5 1.6z" fill="currentColor" stroke="none"/></svg>안아주기</button>
-  <button class="act" id="aVerse" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5.5C6.5 4.3 9.5 4.3 12 6c2.5-1.7 5.5-1.7 8-.5V19c-2.5-1.2-5.5-1.2-8 .5-2.5-1.7-5.5-1.7-8-.5z"/><path d="M12 6v13.5"/></svg>말씀</button>
+  <button class="act" id="aVerse" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5.5C6.5 4.3 9.5 4.3 12 6c2.5-1.7 5.5-1.7 8-.5V19c-2.5-1.2-5.5-1.2-8 .5-2.5-1.7-5.5-1.7-8-.5z"/><path d="M12 6v13.5"/></svg>말씀</button>
   <button class="act" id="aSay" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5h16v11H10l-5 4v-4H4z"/><circle cx="9" cy="10.5" r=".9" fill="currentColor"/><circle cx="12" cy="10.5" r=".9" fill="currentColor"/><circle cx="15" cy="10.5" r=".9" fill="currentColor"/></svg>말하기</button>
   <button class="act" id="aBubble" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="14" r="5.5"/><circle cx="17.5" cy="7" r="3"/><circle cx="18.5" cy="15.5" r="1.8"/><path d="M6.5 11.5a3 3 0 0 1 2.5-1.5" stroke-linecap="round"/></svg>비눗방울</button>
   <button class="act main" id="aPick" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V12M11 11.5V5a1.5 1.5 0 0 1 3 0v6.5M14 11.5V6.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-.5a6 6 0 0 1-4.9-2.6L3.5 15a1.5 1.5 0 0 1 2.4-1.8L8 15"/></svg>줍기 <kbd>F</kbd></button>
   <button class="act main" id="aDrop" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg>버리기 <kbd>F</kbd></button>
   <button class="act" id="aOrder" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 10h14l-1.5 9h-11z"/><path d="M8 10l2-5M16 10l-2-5M3 10h18"/></svg>주문하기</button>
   <button class="act" id="aRoast" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20L15 9"/><ellipse cx="17.5" cy="6.5" rx="3" ry="2" transform="rotate(-45 17.5 6.5)"/><path d="M9 21c0-2 1.5-3 3-4.5M13 21c0-1.5 1-2.5 2-3.5"/></svg>구워 먹기</button>
+  <button class="act" id="aSit" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v9h10"/><path d="M7 13v7M17 13v7M5 9h4"/></svg>앉기</button>
   <button class="act" id="aStand" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="4.5" r="2"/><path d="M12 7v7M8 10l4-2 4 2M9 21l3-7 3 7"/></svg>일어나기</button>
 </div>
 
@@ -383,7 +384,7 @@ a.passtag:hover{background:#ffe066}
   <form class="paper" id="paper">
     <h2>오늘의 고민</h2>
     <p>적은 내용은 저장되지 않고 누구에게도 보이지 않아요. 접어서 날리면 이 화면에서도 사라져요.</p>
-    <div style="display:grid;gap:6px"><span style="font-size:13px;color:#4a4955">지금 마음이 어때요? (고르면 맞는 말씀을 드려요)</span><div class="sits" id="sitPaper"></div></div>
+    <div style="display:none"><span style="font-size:13px;color:#4a4955">지금 마음이 어때요?</span><div class="sits" id="sitPaper"></div></div>
     <textarea id="worry" maxlength="200" placeholder="마음에 걸리는 일을 편하게 적어 보세요"></textarea>
     <div class="row"><span class="cnt" id="worryCnt">0 / 200</span><span class="row" style="gap:6px"><button class="btn" type="button" id="paperClose">닫기</button><button class="btn primary" type="submit">접어서 날리기</button></span></div>
   </form>
@@ -403,7 +404,7 @@ a.passtag:hover{background:#ffe066}
   <form class="card" id="entryForm">
     <h1>본관 테라스 쉼터</h1>
     <p>전주대학교 본관 테라스에 벤치를 놓았어요. 잠깐 앉아 쉬어 가세요.</p>
-    <ul><li>고민은 종이비행기로 접어 밤하늘로 날려요</li><li>상황에 맞는 성경 말씀을 받아요</li><li>마스코트 제이제이에게 안겨 토닥토닥 위로받아요</li><li>비눗방울을 후~ 불며 잠깐 쉬어 가요</li><li>평일 18:00 퇴근 시간을 알려 드려요</li></ul>
+    <ul><li>고민은 종이비행기로 접어 밤하늘로 날려요</li><li>캠프파이어에서 불멍하며 마시멜로를 구워요</li><li>마스코트 제이제이에게 안겨 토닥토닥 위로받아요</li><li>비눗방울을 후~ 불며 잠깐 쉬어 가요</li><li>평일 18:00 퇴근 시간을 알려 드려요</li></ul>
     <div style="display:grid;gap:6px"><span class="l">오늘의 이름 (자동으로 지어져요)</span><div class="row"><b class="nickname big" id="nick"></b><button class="btn" id="reroll" type="button" aria-label="이름 다시 뽑기">🎲 다시 뽑기</button></div></div>
     <div style="display:grid;gap:6px"><span class="l">셔츠 색</span><div class="swatches" id="sw1"></div></div>
     <label class="row small" style="gap:6px"><input type="checkbox" id="soundOn" checked> 소리 켜고 입장 (잔잔한 배경음악, 풀벌레 소리)</label>
@@ -1516,9 +1517,9 @@ function startRoast(k){ if(!isCampSeat(S.seat)||S.goSeat!==null){ setStatus('캠
   if(S.rs&&Date.now()-S.rs.t<ROAST_MS){ setStatus('지금 굽는 중이에요. 조금만 기다려요 🔥'); return; }
   S.rs={k,t:Date.now(),done:false}; $('#pRoast').hidden=true; pushPresence(true); setStatus(`${ROASTS[k].e} ${ROASTS[k].n} 굽는 중… 타지 않게 살살 돌려요 🔥`); }
 // 꼬치: 의자에서 불 쪽으로 쭉 뻗은 막대 + 끝에 음식 (익을수록 색이 변해요)
-const skewers=new Map(), stickM=std(0xc8a070,{roughness:.8});
+const skewers=new Map(), stickM=std(0xc8a070,{roughness:.8}), _hA=new THREE.Vector3(), _hB=new THREE.Vector3();
 function makeSkewer(k){ const g=new THREE.Group(); scene.add(g);
-  const st=mesh(new THREE.CylinderGeometry(.01,.012,1.9,6),stickM,0,0,.95,false); st.rotation.x=Math.PI/2; g.add(st);
+  const st=mesh(new THREE.CylinderGeometry(.01,.012,2.0,6),stickM,0,0,.95,false); st.rotation.x=Math.PI/2; g.add(st);
   const fm=new THREE.MeshStandardMaterial({color:ROASTS[k].raw,roughness:.6}); let food;
   if(k===0){ food=new THREE.Mesh(new THREE.TorusGeometry(.07,.035,8,14,Math.PI*1.4),fm); food.rotation.y=Math.PI/2; }
   else if(k===1){ food=new THREE.Group(); for(let q=0;q<2;q++){ const m=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.09,14),fm); m.rotation.x=Math.PI/2; m.position.z=q*.1; food.add(m); } }
@@ -1530,8 +1531,10 @@ function stepSkewers(now){ const live=new Set();
   for(const [peer,o] of others){ const rs=o.pr.rs; if(!rs) continue; const key=rs[0]+':'+rs[1]; if(o.rsKey!==key){ o.rsKey=key; o.rsStart=now; } list.push({key:peer,av:o.av,rs,seat:o.pr.seat,start:o.rsStart}); }
   for(const it of list){ if(!it.rs||!isCampSeat(it.seat)) continue; const p=(now-it.start)/ROAST_MS; if(p>1.35) continue;
     let sk=skewers.get(it.key); if(!sk||sk.k!==it.rs[0]){ if(sk){ scene.remove(sk.g); } sk=makeSkewer(it.rs[0]); skewers.set(it.key,sk); }
-    live.add(it.key); const s=SEATS[it.seat], a=Math.atan2(CAMP.x-s.x,CAMP.z-s.z);
-    sk.g.position.set(it.av.x+Math.sin(a)*.25,(it.av.y||s.y)+.78,it.av.z+Math.cos(a)*.25); sk.g.rotation.set(-.12,a,0);
+    live.add(it.key); const av=it.av;
+    av.arms.forEach((ar,i)=>{ const s=i?1:-1; ar.rotation.set(-1.15,0,-.32*s); });
+    av.root.updateMatrixWorld(true); av.arms[0].children[2].getWorldPosition(_hA); av.arms[1].children[2].getWorldPosition(_hB); _hA.add(_hB).multiplyScalar(.5);
+    sk.g.position.copy(_hA); sk.g.position.y+=.02; sk.g.lookAt(CAMP.x,CAMP.y+.72,CAMP.z);
     sk.g.children[1].rotation.z=now*.004; const R=ROASTS[it.rs[0]]; sk.fm.color.set(R.raw).lerp(_cb.set(R.ck),Math.min(1,p)); }
   for(const [k,sk] of skewers) if(!live.has(k)){ scene.remove(sk.g); skewers.delete(k); }
   if(S.rs&&!S.rs.done&&now-S.rs.t>=ROAST_MS){ S.rs.done=true; const R=ROASTS[S.rs.k]; fxAt(me.av,R.e); setStatus(`노릇노릇 다 구워졌어요! ${R.e} ${R.n} 냠냠 😋`); if(typeof chime==='function') chime();
@@ -1549,6 +1552,11 @@ function stepCamp(dt,t){ const F=CAMPFX; if(!F) return;
   else { campLb.el.style.display=''; campLb.el.style.transform=`translate(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px) translate(-50%,-100%)`; }
   stepSkewers(Date.now()); }
 
+function nearFreeSeat(){ if(!S.entered||S.seat!==null||S.pq) return -1; let best=-1, bd=1.6;
+  for(let i=0;i<SEATS.length;i++){ const s=SEATS[i]; if(Math.abs((s.y||0)-(S.y||0))>.9) continue; const o=S.occ.get(i); if(o&&!o.me) continue; const d=Math.hypot(S.x-s.x,S.z-s.z); if(d<bd){ bd=d; best=i; } }
+  return best; }
+setInterval(()=>{ const i=nearFreeSeat(); $('#aSit').hidden=i<0; $('#aSit').dataset.seat=i; },250);
+$('#aSit').onclick=()=>{ const i=nearFreeSeat(); if(i<0) return; closePops(); goSit(i); $('#aSit').hidden=true; };
 // ───────── 본관 포차 ─────────
 const FOODS=[{n:'해물파전',e:'🥞'},{n:'후라이드 치킨',e:'🍗'},{n:'떡볶이',e:'🌶️'}];
 const DRINKS=[{n:'막걸리',e:'🍶'},{n:'생맥주',e:'🍺'},{n:'소주',e:'🍾'},{n:'식혜',e:'🥛'},{n:'사이다',e:'🥤'},{n:'아이스티',e:'🧋'}];
@@ -2336,7 +2344,6 @@ function throwPlane(){
   room.emit('plane',{ry:+ry.toFixed(2)}).catch(()=>{});
   addDelta(d=>{ d.planes++; });
   setTimeout(()=>{ setStatus('고민을 날려 보냈어요. 오늘 하루도 정말 수고 많으셨어요.'); },1200);
-  setTimeout(()=>openVerse(true),3200);
 }
 
 // ───────── UI 공통 ─────────
@@ -2656,7 +2663,7 @@ $('#noticeReload').onclick=()=>{ try{ location.reload(); }catch(e){ setStatus('�
 $('#chatOnBox').onchange=async()=>{ const on=$('#chatOnBox').checked; try{ await db.doc('notice/chat').set({on,at:Date.now()}); $('#noticeMsg').textContent=on?'자유 대화를 켰어요 💬':'자유 대화를 껐어요. 모두 정해진 문장만 쓸 수 있어요.'; }catch(e){ $('#chatOnBox').checked=!on; $('#noticeMsg').textContent='바꾸지 못했어요. 잠시 뒤 다시 해 주세요.'; } };
 // ── 새 버전 자동 적용: notice.json의 version이 이 파일의 APP_VER와 다르면 새로 불러와요 ──
 // 다른 창을 보고 있거나 1분 넘게 손을 안 댔으면 바로 새로고침, 아니면 위에 새로고침 버튼을 띄워요
-const APP_VER='2026-11-23a'; let lastInput=Date.now(), updWanted=null;
+const APP_VER='2026-11-23b'; let lastInput=Date.now(), updWanted=null;
 ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,()=>{ lastInput=Date.now(); },{passive:true,capture:true}));
 function goUpdate(v){ let tried=null; try{ tried=sessionStorage.getItem('ter.upd'); sessionStorage.setItem('ter.upd',v); }catch(e){} if(tried===v) return false;
   location.replace(location.pathname+'?v='+encodeURIComponent(v)+location.hash); return true; }
