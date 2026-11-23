@@ -1947,7 +1947,7 @@ function openRun(){ if(JJRUN.open) return; S.ry=Math.atan2(PUNCH.x-S.x,PUNCH.z-S
   const tt=document.createElement('span'); tt.textContent='🏎️ 제이제이 런'; tt.style.flex='1';
   const x=document.createElement('button'); x.type='button'; x.textContent='✕ 테라스로 돌아가기'; x.style.cssText='border:0;border-radius:999px;padding:8px 14px;background:#ffd23f;color:#1a1740;font:700 14px sans-serif;cursor:pointer'; x.onclick=closeRun;
   bar.append(tt,x);
-  const f=document.createElement('iframe'); f.src='jjrun.html'; f.title='제이제이 런'; f.allow='autoplay; fullscreen'; f.style.cssText='flex:1;width:100%;border:0;display:block;background:#1a1740';
+  const f=document.createElement('iframe'); f.src='jjrun.html?v='+encodeURIComponent(APP_VER); f.title='제이제이 런'; f.allow='autoplay; fullscreen'; f.style.cssText='flex:1;width:100%;border:0;display:block;background:#1a1740';
   f.addEventListener('load',()=>{ try{ f.focus(); }catch(e){} });
   o.append(bar,f); document.body.appendChild(o); JJRUN.el=o;
   JJRUN.snd=!!(ac&&ac.state==='running'); if(JJRUN.snd) ac.suspend().catch(()=>{});
@@ -2699,7 +2699,7 @@ $('#noticeReload').onclick=()=>{ try{ location.reload(); }catch(e){ setStatus('�
 $('#chatOnBox').onchange=async()=>{ const on=$('#chatOnBox').checked; try{ await db.doc('notice/chat').set({on,at:Date.now()}); $('#noticeMsg').textContent=on?'자유 대화를 켰어요 💬':'자유 대화를 껐어요. 모두 정해진 문장만 쓸 수 있어요.'; }catch(e){ $('#chatOnBox').checked=!on; $('#noticeMsg').textContent='바꾸지 못했어요. 잠시 뒤 다시 해 주세요.'; } };
 // ── 새 버전 자동 적용: notice.json의 version이 이 파일의 APP_VER와 다르면 새로 불러와요 ──
 // 다른 창을 보고 있거나 1분 넘게 손을 안 댔으면 바로 새로고침, 아니면 위에 새로고침 버튼을 띄워요
-const APP_VER='2026-11-24c'; let lastInput=Date.now(), updWanted=null;
+const APP_VER='2026-11-24d'; let lastInput=Date.now(), updWanted=null;
 ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,()=>{ lastInput=Date.now(); },{passive:true,capture:true}));
 function goUpdate(v){ let tried=null; try{ tried=sessionStorage.getItem('ter.upd'); sessionStorage.setItem('ter.upd',v); }catch(e){} if(tried===v) return false;
   location.replace(location.pathname+'?v='+encodeURIComponent(v)+location.hash); return true; }
