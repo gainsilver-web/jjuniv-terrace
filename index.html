@@ -277,6 +277,7 @@ a.passtag:hover{background:#ffe066}
   <button class="act main" id="aDrop" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg>버리기 <kbd>F</kbd></button>
   <button class="act" id="aOrder" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 10h14l-1.5 9h-11z"/><path d="M8 10l2-5M16 10l-2-5M3 10h18"/></svg>주문하기</button>
   <button class="act" id="aRoast" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20L15 9"/><ellipse cx="17.5" cy="6.5" rx="3" ry="2" transform="rotate(-45 17.5 6.5)"/><path d="M9 21c0-2 1.5-3 3-4.5M13 21c0-1.5 1-2.5 2-3.5"/></svg>구워 먹기</button>
+  <button class="act" id="aDust" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.6 3.6L17 8l-3.4 1.4L12 13l-1.6-3.6L7 8l3.4-1.4z"/><path d="M18 14l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8zM6 15l.6 1.3 1.3.6-1.3.6L6 19l-.6-1.3-1.3-.6 1.3-.6z"/></svg>불꽃가루</button>
   <button class="act" id="aSit" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v9h10"/><path d="M7 13v7M17 13v7M5 9h4"/></svg>앉기</button>
   <button class="act" id="aStand" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="4.5" r="2"/><path d="M12 7v7M8 10l4-2 4 2M9 21l3-7 3 7"/></svg>일어나기</button>
 </div>
@@ -796,9 +797,28 @@ for(const s of [-1,1]){ balustrade(s*42,-13,s*42,5.95); balustrade(s*33,-13,s*42
     for(let row=0;row<5;row++){ const y=.09+row*.13, d=.62-row*.04, rot=row%2?0:Math.PI/2;
       for(const s of [-1,1]){ const l=mesh(new THREE.CylinderGeometry(.065,.065,d*2+.25,8),row<2?charM:barkM,0,y,0); l.rotation.set(Math.PI/2,rot,0);
         if(rot) l.position.x=s*d; else l.position.z=s*d; cf.add(l); } }
-    // 불꽃: 겹겹 원뿔 (밝게 더해지는 색) + 빛 번짐
-    const flM=(c,o)=>new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
-    const flames=[]; [[.6,2.3,0xff4a12,.72],[.46,1.85,0xff7a1a,.78],[.3,1.4,0xffc03a,.88],[.15,.85,0xfff3b0,.95]].forEach(([r,hh,c,o],i)=>{ for(let j=0;j<(i<2?3:1);j++){ const f=mesh(new THREE.ConeGeometry(r,hh,12,1,true),flM(c,o),(j-1)*.16*(i<2?1:0),hh/2+.12,(j%2?.1:-.08)*(i<2?1:0),false); f.userData={hh,ph:Math.random()*6,base:f.position.clone()}; cf.add(f); flames.push(f); } });
+    // 불꽃: 일렁이는 진짜 불 모양 (노이즈로 그린 불꽃 판을 늘 카메라 쪽으로 세워 여러 겹) + 빛 번짐
+    const FLAME_VS=`varying vec2 vUv; void main(){ vUv=uv; vec4 mv=modelViewMatrix*vec4(0.,0.,0.,1.); vec2 sc=vec2(length(modelMatrix[0].xyz),length(modelMatrix[1].xyz)); mv.xy+=position.xy*sc; gl_Position=projectionMatrix*mv; }`;
+    const FLAME_FS=`uniform float uT; uniform float uSeed; uniform float uRain; uniform float uInt; varying vec2 vUv;
+      float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+      float noise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y); }
+      float fbm(vec2 p){ float v=0., a=.5; for(int i=0;i<5;i++){ v+=a*noise(p); p*=2.03; a*=.5; } return v; }
+      void main(){ float x=vUv.x-.5, y=vUv.y;
+        float n=fbm(vec2(x*2.6+uSeed, y*2.0-uT*1.5+uSeed*1.7)), n2=fbm(vec2(x*5.5-uSeed, y*3.6-uT*2.7));
+        float w=.38*pow(1.-y,.75)+.02; float xs=x+(n-.5)*.42*y+sin(y*6.+uT*3.+uSeed)*.04*y;
+        float d=abs(xs)/w;
+        float tongue=smoothstep(.95,.55,y+(n2-.5)*.55-(n-.5)*.25);
+        float body=smoothstep(1.,.15,d)*tongue*smoothstep(0.,.08,y);
+        float a=clamp(body*(.55+n2*.9),0.,1.);
+        float h=clamp(a*1.35-y*.45+(.2-abs(xs))*.6,0.,1.);
+        vec3 c=mix(vec3(.55,.05,0.),vec3(1.,.38,.04),smoothstep(.05,.4,h)); c=mix(c,vec3(1.,.78,.25),smoothstep(.4,.72,h)); c=mix(c,vec3(1.,.97,.82),smoothstep(.72,1.,h));
+        vec3 rb=.55+.45*cos(6.2832*(vec3(0.,.33,.67)+xs*1.8+y*.6-uT*.35+uSeed*.3));
+        c=mix(c, rb*(.75+.5*h)+vec3(.25)*smoothstep(.8,1.,h), uRain*smoothstep(.05,.35,y));
+        gl_FragColor=vec4(c*uInt, a); }`;
+    const flameGeo=new THREE.PlaneGeometry(1,1); flameGeo.translate(0,.5,0);
+    const flames=[]; [[0,0,0,2.4,2.7,.0],[.3,0,.14,1.7,2.1,1.7],[-.3,0,-.12,1.6,1.9,3.1],[.06,0,-.32,1.5,1.6,4.6],[-.12,0,.32,1.5,1.7,6.2]].forEach(([x,y,z,w,hh,sd])=>{
+      const m=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uSeed:{value:sd},uRain:{value:0},uInt:{value:1}},vertexShader:FLAME_VS,fragmentShader:FLAME_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,fog:false});
+      const f=new THREE.Mesh(flameGeo,m); f.position.set(x,.18+y,z); f.scale.set(w,hh,1); f.frustumCulled=false; f.renderOrder=5; f.userData={w,hh}; cf.add(f); flames.push(f); });
     const glowT=canvasTex(64,64,(g,w,hh)=>{ const gr=g.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,'rgba(255,190,90,.9)'); gr.addColorStop(.4,'rgba(255,120,40,.35)'); gr.addColorStop(1,'rgba(255,80,20,0)'); g.fillStyle=gr; g.fillRect(0,0,w,hh); });
     const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowT,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false})); glow.scale.set(4.6,4.6,1); glow.position.y=1.1; cf.add(glow);
     const light=new THREE.PointLight(0xff8a3a,2.2,20,1.5); light.position.y=1.6; cf.add(light);
@@ -1542,10 +1562,24 @@ function stepSkewers(now){ const live=new Set();
   if(S.rs&&!S.rs.done&&now-S.rs.t>=ROAST_MS){ S.rs.done=true; const R=ROASTS[S.rs.k]; fxAt(me.av,R.e); setStatus(`노릇노릇 다 구워졌어요! ${R.e} ${R.n} 냠냠 😋`); if(typeof chime==='function') chime();
     setTimeout(()=>{ if(S.rs&&S.rs.done){ S.rs=null; pushPresence(true); } },2000); }
 }
+// ── 불꽃가루 뿌리기: 15초 동안 무지개 불꽃 (한 번에 한 사람만, 끝나면 다음 사람) ──
+const DUST_MS=15000; S.cp=0;
+function dustState(){ const now=Date.now(); let best=null;
+  if(S.cp&&now-S.cp<DUST_MS) best={who:'나',start:S.cp,me:true};
+  for(const [peer,o] of others){ const v=o.pr.cp; if(!v) continue; if(o.cpKey!==v){ o.cpKey=v; o.cpStart=now; } if(now-o.cpStart<DUST_MS&&(!best||o.cpStart<best.start)) best={who:o.pr.nick,start:o.cpStart,me:false}; }
+  return best?{active:true,left:Math.ceil((DUST_MS-(now-best.start))/1000),who:best.who,me:best.me}:{active:false}; }
+function syncDustBtn(cp){ const near=S.entered&&Math.hypot(S.x-CAMP.x,S.z-CAMP.z)<9; const b=$('#aDust'); if(b.hidden===near) b.hidden=!near; b.classList.toggle('on',!!cp.active); }
+$('#aDust').onclick=()=>{ const cp=dustState();
+  if(cp.active){ setStatus(cp.me?`불꽃가루가 타오르는 중이에요 🌈 (${cp.left}초)`:`${cp.who} 님이 불꽃가루를 뿌리는 중이에요. ${cp.left}초 뒤에 뿌릴 수 있어요 ✨`); return; }
+  S.cp=Date.now(); me.av.throwT=clock.elapsedTime; pushPresence(true); fxAt({x:CAMP.x,y:CAMP.y+2.2,z:CAMP.z},'✨🌈✨'); if(typeof chime==='function') chime();
+  setStatus('불꽃가루를 뿌렸어요! 15초 동안 무지개 불꽃이 피어올라요 🌈🔥'); };
 let crackT=0;
 function crackle(vol){ if(!S.sound||!audio()) return; const t=ac.currentTime, s=ac.createBufferSource(); s.buffer=noiseBuf(.05); const f=ac.createBiquadFilter(); f.type='highpass'; f.frequency.value=1800+Math.random()*2000; const g=ac.createGain(); g.gain.setValueAtTime(.12*vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+.05+Math.random()*.05); s.connect(f).connect(g).connect(ac.destination); s.start(t); }
 function stepCamp(dt,t){ const F=CAMPFX; if(!F) return;
-  F.flames.forEach((f,i)=>{ const u=f.userData, n=Math.sin(t*9+u.ph)*.5+Math.sin(t*15.3+u.ph*2)*.3; f.scale.set(1+n*.08,1+n*.22,1+n*.08); f.position.x=u.base.x+Math.sin(t*5+u.ph)*.03; f.position.y=u.base.y+n*u.hh*.1; f.rotation.y=t*.6+u.ph; });
+  const cp=dustState(), want=cp.active?1:0; F.rain=(F.rain||0)+(want-(F.rain||0))*Math.min(1,dt*1.6);
+  F.flames.forEach((f,i)=>{ const u=f.material.uniforms; u.uT.value=t; u.uRain.value=F.rain; u.uInt.value=DN.k>.55?1:.85; const fl=1+Math.sin(t*7+i*1.9)*.06; f.scale.set(f.userData.w*(1+F.rain*.15),f.userData.hh*fl*(1+F.rain*.2),1); });
+  if(F.rain>.01){ F.light.color.setHSL((t*.15)%1,.9,.6); F.sparks.material.color.setHSL((t*.25+.3)%1,1,.65); } else { F.light.color.set(0xff8a3a); F.sparks.material.color.set(0xffb347); }
+  syncDustBtn(cp);
   const fl=1+Math.sin(t*11)*.12+Math.sin(t*23.7)*.08; F.light.intensity=(DN.k>.55?3.0:1.5)*fl; F.glow.material.opacity=(DN.k>.55?1:.55)*(.85+.15*fl); F.glow.scale.setScalar(4.5*fl);
   for(let k=0;k<F.spSeed.length;k++){ const s=F.spSeed[k], q=(t*s.v*.35+s.ph)%1; F.spPos[k*3]=Math.cos(s.a+q*3)*(s.r+q*.35); F.spPos[k*3+1]=.4+q*3.8; F.spPos[k*3+2]=Math.sin(s.a+q*3)*(s.r+q*.35); }
   F.spGeo.attributes.position.needsUpdate=true;
@@ -2148,9 +2182,9 @@ function pushPresence(force){
   const now=performance.now();
   if(!force&&now-lastPush<140){ if(!pushQueued){ pushQueued=true; setTimeout(()=>{pushQueued=false;pushPresence(true);},150);} return; }
   lastPush=now;
-  room.presence({t0:S.joinedAt||0,room:S.roomKey||S.room,at:S.roomKey||S.room,nick:S.nick||'손님',color:S.color,x:+S.x.toFixed(2),z:+S.z.toFixed(2),ry:+S.ry.toFixed(2),seat:S.seat,seatAt:S.seatAt,pq:S.pq||0,po:S.po||null,hd:S.hold?S.hold.k:-1,tk:trashKey,pk:S.pk,rs:S.rs?[S.rs.k,S.rs.t]:null}).catch(()=>{});
+  room.presence({t0:S.joinedAt||0,room:S.roomKey||S.room,at:S.roomKey||S.room,nick:S.nick||'손님',color:S.color,x:+S.x.toFixed(2),z:+S.z.toFixed(2),ry:+S.ry.toFixed(2),seat:S.seat,seatAt:S.seatAt,pq:S.pq||0,po:S.po||null,hd:S.hold?S.hold.k:-1,tk:trashKey,pk:S.pk,rs:S.rs?[S.rs.k,S.rs.t]:null,cp:S.cp||0}).catch(()=>{});
 }
-function parsePeer(p){ const r0=parsePeer0(p), pq=p.presence||{}; r0.rs=Array.isArray(pq.rs)&&pq.rs.length===2&&Number.isInteger(pq.rs[0])&&pq.rs[0]>=0&&pq.rs[0]<ROASTS.length?[pq.rs[0],num(pq.rs[1])]:null; return r0; }
+function parsePeer(p){ const r0=parsePeer0(p), pq=p.presence||{}; r0.rs=Array.isArray(pq.rs)&&pq.rs.length===2&&Number.isInteger(pq.rs[0])&&pq.rs[0]>=0&&pq.rs[0]<ROASTS.length?[pq.rs[0],num(pq.rs[1])]:null; r0.cp=num(pq.cp); return r0; }
 function parsePeer0(p){ const pr=p.presence||{}; const seat=Number.isInteger(pr.seat)&&pr.seat>=0&&pr.seat<SEATS.length?pr.seat:null;
   return {t0:num(pr.t0),nick:cleanNick(pr.nick)||'손님',color:okColor(pr.color),x:fin(pr.x,-BOUNDS.x,BOUNDS.x,0),z:fin(pr.z,BOUNDS.z0,BOUNDS.z1,3),ry:fin(pr.ry,-10,10,0),seat,seatAt:num(pr.seatAt),pq:num(pr.pq),po:Array.isArray(pr.po)&&pr.po.length===2?[Math.round(fin(pr.po[0],-1,2,-1)),Math.round(fin(pr.po[1],-1,5,-1))]:null,hd:Math.round(fin(pr.hd,-1,5,-1)),tk:typeof pr.tk==='string'?pr.tk.slice(0,80):'',pk:Array.isArray(pr.pk)?pr.pk.filter(v=>Number.isInteger(v)&&v>=0&&v<TRASH_N).slice(0,TRASH_N):[]}; }
 function computeOcc(){
@@ -2665,7 +2699,7 @@ $('#noticeReload').onclick=()=>{ try{ location.reload(); }catch(e){ setStatus('�
 $('#chatOnBox').onchange=async()=>{ const on=$('#chatOnBox').checked; try{ await db.doc('notice/chat').set({on,at:Date.now()}); $('#noticeMsg').textContent=on?'자유 대화를 켰어요 💬':'자유 대화를 껐어요. 모두 정해진 문장만 쓸 수 있어요.'; }catch(e){ $('#chatOnBox').checked=!on; $('#noticeMsg').textContent='바꾸지 못했어요. 잠시 뒤 다시 해 주세요.'; } };
 // ── 새 버전 자동 적용: notice.json의 version이 이 파일의 APP_VER와 다르면 새로 불러와요 ──
 // 다른 창을 보고 있거나 1분 넘게 손을 안 댔으면 바로 새로고침, 아니면 위에 새로고침 버튼을 띄워요
-const APP_VER='2026-11-23c'; let lastInput=Date.now(), updWanted=null;
+const APP_VER='2026-11-23d'; let lastInput=Date.now(), updWanted=null;
 ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,()=>{ lastInput=Date.now(); },{passive:true,capture:true}));
 function goUpdate(v){ let tried=null; try{ tried=sessionStorage.getItem('ter.upd'); sessionStorage.setItem('ter.upd',v); }catch(e){} if(tried===v) return false;
   location.replace(location.pathname+'?v='+encodeURIComponent(v)+location.hash); return true; }
