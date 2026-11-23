@@ -791,17 +791,19 @@ for(const s of [-1,1]){ balustrade(s*42,-13,s*42,5.95); balustrade(s*33,-13,s*42
     cf.add(mesh(new THREE.CylinderGeometry(.85,.85,.04,24),std(0x2a2522,{roughness:1}),0,.02,0,false));
     const barkM=std(0x5a3a22,{roughness:.9}), endM=std(0xc8a070,{roughness:.8}), charM=std(0x1c1512,{roughness:1});
     // 불 속 장작: 원뿔처럼 기대어 쌓기
-    for(let k=0;k<7;k++){ const a=k/7*Math.PI*2, lg=new THREE.Group(); lg.position.set(Math.cos(a)*.42,.05,Math.sin(a)*.42); lg.rotation.y=-a; cf.add(lg);
-      const l=mesh(new THREE.CylinderGeometry(.06,.075,1.05,8),k%2?barkM:charM,0,.42,0); l.rotation.z=.55; l.position.x=-.22; lg.add(l); }
-    for(const [x,z,r] of [[0,.25,0],[0,-.25,0],[.25,0,Math.PI/2]]){ const l=mesh(new THREE.CylinderGeometry(.07,.07,.9,8),charM,x,.08,z); l.rotation.set(Math.PI/2,0,r); cf.add(l); }
+    for(let k=0;k<10;k++){ const a=k/10*Math.PI*2, lg=new THREE.Group(); lg.position.set(Math.cos(a)*.5,.05,Math.sin(a)*.5); lg.rotation.y=-a; cf.add(lg);
+      const l=mesh(new THREE.CylinderGeometry(.055,.08,1.55,8),k%2?barkM:charM,0,.68,0); l.rotation.z=.36; l.position.x=-.26; lg.add(l); }
+    for(let row=0;row<5;row++){ const y=.09+row*.13, d=.62-row*.04, rot=row%2?0:Math.PI/2;
+      for(const s of [-1,1]){ const l=mesh(new THREE.CylinderGeometry(.065,.065,d*2+.25,8),row<2?charM:barkM,0,y,0); l.rotation.set(Math.PI/2,rot,0);
+        if(rot) l.position.x=s*d; else l.position.z=s*d; cf.add(l); } }
     // 불꽃: 겹겹 원뿔 (밝게 더해지는 색) + 빛 번짐
     const flM=(c,o)=>new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
-    const flames=[]; [[.42,1.3,0xff5a1a,.75],[.32,1.05,0xff8c1a,.8],[.2,.8,0xffd23a,.9],[.1,.5,0xfff3b0,.95]].forEach(([r,hh,c,o],i)=>{ for(let j=0;j<(i<2?3:1);j++){ const f=mesh(new THREE.ConeGeometry(r,hh,12,1,true),flM(c,o),(j-1)*.12*(i<2?1:0),hh/2+.08,(j%2?.08:-.06)*(i<2?1:0),false); f.userData={hh,ph:Math.random()*6,base:f.position.clone()}; cf.add(f); flames.push(f); } });
+    const flames=[]; [[.6,2.3,0xff4a12,.72],[.46,1.85,0xff7a1a,.78],[.3,1.4,0xffc03a,.88],[.15,.85,0xfff3b0,.95]].forEach(([r,hh,c,o],i)=>{ for(let j=0;j<(i<2?3:1);j++){ const f=mesh(new THREE.ConeGeometry(r,hh,12,1,true),flM(c,o),(j-1)*.16*(i<2?1:0),hh/2+.12,(j%2?.1:-.08)*(i<2?1:0),false); f.userData={hh,ph:Math.random()*6,base:f.position.clone()}; cf.add(f); flames.push(f); } });
     const glowT=canvasTex(64,64,(g,w,hh)=>{ const gr=g.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,'rgba(255,190,90,.9)'); gr.addColorStop(.4,'rgba(255,120,40,.35)'); gr.addColorStop(1,'rgba(255,80,20,0)'); g.fillStyle=gr; g.fillRect(0,0,w,hh); });
-    const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowT,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false})); glow.scale.set(3.2,3.2,1); glow.position.y=.7; cf.add(glow);
-    const light=new THREE.PointLight(0xff8a3a,1.8,16,1.6); light.position.y=1.1; cf.add(light);
+    const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowT,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false})); glow.scale.set(4.6,4.6,1); glow.position.y=1.1; cf.add(glow);
+    const light=new THREE.PointLight(0xff8a3a,2.2,20,1.5); light.position.y=1.6; cf.add(light);
     // 불티 (위로 날아오르는 작은 점)
-    const NSP=46, spPos=new Float32Array(NSP*3), spSeed=[]; for(let k=0;k<NSP;k++) spSeed.push({a:Math.random()*6.28,r:Math.random()*.3,v:.6+Math.random()*.9,ph:Math.random()});
+    const NSP=46, spPos=new Float32Array(NSP*3), spSeed=[]; for(let k=0;k<NSP;k++) spSeed.push({a:Math.random()*6.28,r:Math.random()*.4,v:.6+Math.random()*.9,ph:Math.random()});
     const spGeo=new THREE.BufferGeometry(); spGeo.setAttribute('position',new THREE.BufferAttribute(spPos,3));
     const sparks=new THREE.Points(spGeo,new THREE.PointsMaterial({color:0xffb347,size:.07,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false})); sparks.frustumCulled=false; cf.add(sparks);
     // 옆에 쌓아 둔 장작더미
@@ -1535,7 +1537,7 @@ function stepSkewers(now){ const live=new Set();
     av.arms.forEach((ar,i)=>{ const s=i?1:-1; ar.rotation.set(-1.15,0,-.32*s); });
     av.root.updateMatrixWorld(true); av.arms[0].children[2].getWorldPosition(_hA); av.arms[1].children[2].getWorldPosition(_hB); _hA.add(_hB).multiplyScalar(.5);
     sk.g.position.copy(_hA); sk.g.position.y+=.02; sk.g.lookAt(CAMP.x,CAMP.y+.72,CAMP.z);
-    sk.g.children[1].rotation.z=now*.004; const R=ROASTS[it.rs[0]]; sk.fm.color.set(R.raw).lerp(_cb.set(R.ck),Math.min(1,p)); }
+    if(sk.k===1||sk.k===3) sk.g.children[1].rotation.z=now*.004; const R=ROASTS[it.rs[0]]; sk.fm.color.set(R.raw).lerp(_cb.set(R.ck),Math.min(1,p)); }
   for(const [k,sk] of skewers) if(!live.has(k)){ scene.remove(sk.g); skewers.delete(k); }
   if(S.rs&&!S.rs.done&&now-S.rs.t>=ROAST_MS){ S.rs.done=true; const R=ROASTS[S.rs.k]; fxAt(me.av,R.e); setStatus(`노릇노릇 다 구워졌어요! ${R.e} ${R.n} 냠냠 😋`); if(typeof chime==='function') chime();
     setTimeout(()=>{ if(S.rs&&S.rs.done){ S.rs=null; pushPresence(true); } },2000); }
@@ -1544,11 +1546,11 @@ let crackT=0;
 function crackle(vol){ if(!S.sound||!audio()) return; const t=ac.currentTime, s=ac.createBufferSource(); s.buffer=noiseBuf(.05); const f=ac.createBiquadFilter(); f.type='highpass'; f.frequency.value=1800+Math.random()*2000; const g=ac.createGain(); g.gain.setValueAtTime(.12*vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+.05+Math.random()*.05); s.connect(f).connect(g).connect(ac.destination); s.start(t); }
 function stepCamp(dt,t){ const F=CAMPFX; if(!F) return;
   F.flames.forEach((f,i)=>{ const u=f.userData, n=Math.sin(t*9+u.ph)*.5+Math.sin(t*15.3+u.ph*2)*.3; f.scale.set(1+n*.08,1+n*.22,1+n*.08); f.position.x=u.base.x+Math.sin(t*5+u.ph)*.03; f.position.y=u.base.y+n*u.hh*.1; f.rotation.y=t*.6+u.ph; });
-  const fl=1+Math.sin(t*11)*.12+Math.sin(t*23.7)*.08; F.light.intensity=(DN.k>.55?2.4:1.2)*fl; F.glow.material.opacity=(DN.k>.55?1:.55)*(.85+.15*fl); F.glow.scale.setScalar(3.1*fl);
-  for(let k=0;k<F.spSeed.length;k++){ const s=F.spSeed[k], q=(t*s.v*.35+s.ph)%1; F.spPos[k*3]=Math.cos(s.a+q*3)*(s.r+q*.35); F.spPos[k*3+1]=.3+q*2.6; F.spPos[k*3+2]=Math.sin(s.a+q*3)*(s.r+q*.35); }
+  const fl=1+Math.sin(t*11)*.12+Math.sin(t*23.7)*.08; F.light.intensity=(DN.k>.55?3.0:1.5)*fl; F.glow.material.opacity=(DN.k>.55?1:.55)*(.85+.15*fl); F.glow.scale.setScalar(4.5*fl);
+  for(let k=0;k<F.spSeed.length;k++){ const s=F.spSeed[k], q=(t*s.v*.35+s.ph)%1; F.spPos[k*3]=Math.cos(s.a+q*3)*(s.r+q*.35); F.spPos[k*3+1]=.4+q*3.8; F.spPos[k*3+2]=Math.sin(s.a+q*3)*(s.r+q*.35); }
   F.spGeo.attributes.position.needsUpdate=true;
   const d=Math.hypot(S.x-CAMP.x,S.z-CAMP.z); crackT-=dt; if(crackT<=0){ crackT=.08+Math.random()*.45; if(d<14&&S.entered) crackle(Math.max(0,1-d/14)); }
-  const p=screenOf({x:CAMP.x,z:CAMP.z,y:CAMP.y},2.9); if(!p.ok||p.x<-120||p.x>innerWidth+120||Math.hypot(camera.position.x-CAMP.x,camera.position.z-CAMP.z)>70){ campLb.el.style.display='none'; }
+  const p=screenOf({x:CAMP.x,z:CAMP.z,y:CAMP.y},3.6); if(!p.ok||p.x<-120||p.x>innerWidth+120||Math.hypot(camera.position.x-CAMP.x,camera.position.z-CAMP.z)>70){ campLb.el.style.display='none'; }
   else { campLb.el.style.display=''; campLb.el.style.transform=`translate(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px) translate(-50%,-100%)`; }
   stepSkewers(Date.now()); }
 
@@ -2663,7 +2665,7 @@ $('#noticeReload').onclick=()=>{ try{ location.reload(); }catch(e){ setStatus('�
 $('#chatOnBox').onchange=async()=>{ const on=$('#chatOnBox').checked; try{ await db.doc('notice/chat').set({on,at:Date.now()}); $('#noticeMsg').textContent=on?'자유 대화를 켰어요 💬':'자유 대화를 껐어요. 모두 정해진 문장만 쓸 수 있어요.'; }catch(e){ $('#chatOnBox').checked=!on; $('#noticeMsg').textContent='바꾸지 못했어요. 잠시 뒤 다시 해 주세요.'; } };
 // ── 새 버전 자동 적용: notice.json의 version이 이 파일의 APP_VER와 다르면 새로 불러와요 ──
 // 다른 창을 보고 있거나 1분 넘게 손을 안 댔으면 바로 새로고침, 아니면 위에 새로고침 버튼을 띄워요
-const APP_VER='2026-11-23b'; let lastInput=Date.now(), updWanted=null;
+const APP_VER='2026-11-23c'; let lastInput=Date.now(), updWanted=null;
 ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,()=>{ lastInput=Date.now(); },{passive:true,capture:true}));
 function goUpdate(v){ let tried=null; try{ tried=sessionStorage.getItem('ter.upd'); sessionStorage.setItem('ter.upd',v); }catch(e){} if(tried===v) return false;
   location.replace(location.pathname+'?v='+encodeURIComponent(v)+location.hash); return true; }
